@@ -1,0 +1,79 @@
+name: macOS smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  macos-smoke:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Print runner and validate repository
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+          python3 tools/check_repo.py
+      - name: Run Swift package tests
+        run: swift test --package-path app
+      - name: Fetch pinned XcodeGen
+        env:
+          XCODEGEN_VERSION: "2.48.0"
+          XCODEGEN_SHA256: "620c9f0dc10849f94728ab5df52d225ebab8187439dd6fee1925e59e80dff892"
+        run: |
+          tools_dir="$RUNNER_TEMP/iosps-xcodegen"
+          mkdir -p "$tools_dir"
+          curl --fail --silent --show-error --location --retry 3 --output "$tools_dir/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$tools_dir/xcodegen.zip" | shasum -a 256 -c -
+          ditto -x -k "$tools_dir/xcodegen.zip" "$tools_dir"
+          executable="$(find "$tools_dir" -type f -name xcodegen -print -quit)"
+          test -n "$executable"
+          test -x "$executable"
+          "$executable" --version
+          dirname "$executable" >> "$GITHUB_PATH"
+      - name: Build arm64 Mac app
+        working-directory: app
+        run: |
+          xcodegen generate
+          time xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Release \
+            -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" build
+      - name: Render greeting and package app
+        run: |
+          output="$RUNNER_TEMP/iosps-artifacts"
+          app="$RUNNER_TEMP/iosps-build/Build/Products/Release/IOSPS.app"
+          mkdir -p "$output"
+          swift run --package-path app BirthdaySmokeSnapshot "$output/birthday-smoke.png"
+          sips -g pixelWidth -g pixelHeight "$output/birthday-smoke.png" | tee "$output/snapshot-size.txt"
+          grep -F 'pixelWidth: 720' "$output/snapshot-size.txt"
+          grep -F 'pixelHeight: 480' "$output/snapshot-size.txt"
+          test "$(lipo -archs "$app/Contents/MacOS/IOSPS")" = arm64
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv --verbose=4 "$app" 2>&1 | tee "$output/signature.txt"
+          grep -F 'Signature=adhoc' "$output/signature.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$output/IOSPS.app.zip"
+          unzip -Z1 "$output/IOSPS.app.zip" | grep -Fx 'IOSPS.app/Contents/MacOS/IOSPS'
+          (cd "$output" && shasum -a 256 IOSPS.app.zip > IOSPS.app.zip.sha256)
+      - name: Upload smoke artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: iosps-macos-smoke
+          path: |
+            ${{ runner.temp }}/iosps-artifacts/birthday-smoke.png
+            ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
+            ${{ runner.temp }}/iosps-artifacts/signature.txt
+            ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip
+            ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip.sha256
+          if-no-files-found: error
+          retention-days: 7

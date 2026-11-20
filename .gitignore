@@ -1,0 +1,44 @@
+# --- Privacy: personal gift content never enters the repo ---
+content/private/
+
+# --- Secrets / signing ---
+.env
+.env.*
+*.p12
+*.p8
+*.pfx
+*.pem
+*.key
+*.cer
+*.mobileprovision
+*.provisionprofile
+AuthKey_*.p8
+.claude/settings.local.json
+
+# --- Downloaded CI artifacts / screenshots ---
+artifacts/
+
+# --- Swift / Xcode ---
+.build/
+.swiftpm/
+DerivedData/
+*.xcodeproj/
+xcuserdata/
+*.xcuserstate
+*.xcresult
+Package.resolved.bak
+*.ipa
+*.app
+*.app.zip
+*.dSYM/
+*.dSYM.zip
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+~$*
+__pycache__/
+*.pyc

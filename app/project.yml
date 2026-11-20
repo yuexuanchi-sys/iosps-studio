@@ -1,0 +1,35 @@
+name: IOSPS
+options:
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    ARCHS: arm64
+packages:
+  IOSPSModules:
+    path: .
+targets:
+  AppMac:
+    type: application
+    platform: macOS
+    sources:
+      - Apps/Mac
+    dependencies:
+      - package: IOSPSModules
+        product: DesignSystem
+    settings:
+      base:
+        PRODUCT_NAME: IOSPS
+        PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday
+        GENERATE_INFOPLIST_FILE: "YES"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
+schemes:
+  AppMac:
+    build:
+      targets:
+        AppMac: all

@@ -1,0 +1,21 @@
+# Normalize line endings: author on Windows, build on macOS CI.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.docx binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.heic binary
+*.gif binary
+*.mp4 binary
+*.mov binary
+*.m4a binary
+*.mp3 binary
+*.wav binary
+*.ttf binary
+*.otf binary
+*.cube text
+*.zip binary
