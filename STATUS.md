@@ -1,20 +1,19 @@
 # STATUS — 项目当前状态
 
-当前交付目标是 macOS。产品定义已有可执行评审稿，工程与冒烟流程等待首次 Swift/macOS 验证。
+当前交付目标是 macOS。首次 macOS CI 成功，现优先评估以 Compositor 复用修图能力。
 
 - **最后更新**：2026-11-20
-- **当前阶段**：M1 产品定义待验收，M2 工程基础已开始；M0 Git/CI 前置仍在等待
-- **当前任务**：[T-0004 Git 与 GitHub 首次上传](tasks/T-0004-git-and-github-setup.md)（`in-progress`，建立私有远端并审计首次提交）
+- **当前阶段**：M0 首次上传与 macOS 冒烟完成，Compositor 预评估待选路线；M1 产品定义待验收，M2 工程基础已通过首次 CI
+- **当前任务**：[T-0006 Compositor 只读预评估](tasks/T-0006-compositor-reuse-spike.md)（`review`，待 D-12）
 - **执行方式**：按 [executor-prompt.md](docs/workflow/executor-prompt.md) 连续推进，WIP = 1
 
 ## 下一步
 
-1. **T-0004 → T-0005**：依照 D-04、D-05 验证忽略规则与暂存清单，推送至私有仓库并触发冒烟；下载 PNG、ZIP，核对签名和耗时。通过后把 ADR-0004 转为 Accepted。
-2. **T-0007（可并行于用户准备）**：如已装 Swift，在 Windows 运行卡片临时库命令和 `swift test --package-path app`。否则用首次 CI 验证 L1。
-3. **T-0201 / T-0204 / T-0305 / T-0306 / T-0501 / T-0206 / T-0207**：按工具链或 CI 的证据逐项验收。已有 38 个 L1 及 9 个 macOS MediaIO 测试声明；T-0201 还要记录 AppMac Release 构建。
-4. **T-0202 → T-0203**：以首个冒烟 run 为依据定稿常规 CI、构建产物和浅／深色及文字缩放快照。
-5. **T-0205 → T-0301**：草稿库与媒体引擎通过 macOS 测试后，接 Finder 导入和拖放，再接生日主页与日期逻辑；T-0302/T-0304 使用回忆清单与用户素材。
-6. **T-0101 / T-0102 / T-0103 / T-0104**：用户可同时验收 PRD、线框、视觉及命名，并按素材清单私下准备回忆包。D-02 确认后复核工期，D-07 的实际设备信息在 T-0803 核对。
+1. **T-0006 / D-12**：[R04](docs/research/R04-compositor-reuse.md) 已核查 Compositor `4a17b264`。目标 Mac 可用 26+ 时优先验证完整继承，保留 14.0 时优先 IOSPS 定点复用。选定后立原型卡，验收 arm64／Swift 6、中文编辑与 PNG/JPEG、生日与回忆短片的素材连通、断网安装及运行。
+2. **T-0202 → T-0203**：以 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 为依据推进常规 CI、构建产物和浅／深色及文字缩放快照。
+3. **T-0207 → T-0205**：补齐 HEIC、视频、色彩与尺寸的运行验收，再接 Finder 选取、拖放和权限反馈。
+4. **T-0301**：接生日主页与日期逻辑；T-0302/T-0304 使用回忆清单与用户素材。
+5. **T-0101 / T-0102 / T-0103 / T-0104**：用户可同时验收 PRD、线框、视觉及命名，并按素材清单私下准备回忆包。D-02 确认后复核工期。
 
 ## 待用户决策
 
@@ -31,16 +30,18 @@
 | D-09 | 视觉方向、App 名称和图标 | DesignSystem 与交付外观 | T-0103 | ⚠️ 已按默认推进：暖色纸相册、拾光簿、叠放照片与星点 |
 | D-10 | 2 月 29 日生日在平年何时祝福 | 倒计时、年龄、全屏祝福 | T-0305 | ⚠️ 已按默认推进：2 月 28 日 |
 | D-11 | 短片首版帧率与时长 | 时间轴与导出 | T-0501 | ⚠️ 已按默认推进：30 fps 整数帧，最长 10 分钟 |
+| D-12 | Compositor 复用路线与首版部署目标 | 修图底座、目标 Mac 兼容性 | T-0006 / ADR-0001 / ADR-0003 | ⏳ 待确认目标 Mac 实际系统及是否接受 macOS 26.0，并选择完整继承或保留 IOSPS 定点复用 |
 
 ## 阻塞
 
-- **macOS CI**：等待首次上传到私有远端；冒烟配置已有 L0/YAML/Bash 静态证据。
-- **L1**：当前机器无 `swift`，WinGet 别名在沙箱内无法启动，有 Visual C++ 工具但 SDK/ARM64 组件待核对。用户可选用 [T-0007](tasks/T-0007-windows-swift-toolchain.md) 的安装路径，或直接验证 CI。
+- **修图路线**：T-0401 及后续自研修图代码暂缓，等待 D-12。现有代码和 macOS 14.0／arm64 基线继续保留。
+- **本地 L1**：当前机器无 `swift`，WinGet 别名无法启动。Windows 安装见 [T-0007](tasks/T-0007-windows-swift-toolchain.md)，L1 已在 macOS CI 验证。
 - **个人素材**：T-0104 的格式和清单已写好，用户将素材放进 `content/private/` 后只需确认目录与数量。T-0302/T-0304 的真实内容验收需素材。
 - **产品与目标机验收**：T-0101/T-0102/T-0103 在 review，安装与体验要在朋友目标 Mac 做 L4。
 
 ## 环境和边界
 
+- 冒烟 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 为 `success`，47 个测试通过，AppMac arm64 Release 和签名通过，已打开首屏 PNG 并验证 ZIP，详见 [T-0005](tasks/T-0005-ci-smoke-test.md)。
 - Windows 11 有 git、Python 和 Node；Apple 构建使用 macOS GitHub runner。
 - Swift 6、SwiftUI、Core Image/Metal、AVFoundation、Vision；工程先做 AppMac，L1 模块保持跨平台。
 - 构建只含公开资源；个人目录由 `.gitignore` 排除。最低平台见 [ADR-0003](docs/decisions/ADR-0003-target-platform.md)，签名路径见 [ADR-0005](docs/decisions/ADR-0005-distribution.md)。

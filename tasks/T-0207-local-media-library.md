@@ -24,9 +24,9 @@ updated: 2026-11-20
 
 ## 验收标准
 
-- [ ] AC1：批量导入保持请求顺序，正确报告不支持与损坏项。读回已入库文件与源文件的字节一致。
+- [x] AC1：批量导入保持请求顺序，正确报告不支持与损坏项。读回已入库文件与源文件的字节一致。run 44775125352 的 `orderedBatchPreservesOriginalAndSeparatesFailures` 通过。
 - [ ] AC2：JPEG/PNG/HEIC 的缩略图应用源方向，MOV/MP4 应用视频首帧方向；缩略图长边不超过 512 像素，输出 Display P3 PNG。
-- [ ] AC3：失败项不会发布可读取的半成品，同一 UUID 可重开读取。用 `swift test --package-path app --filter MediaLibraryTests` 运行本切片用例；视频和 HEIC 回归样本另由 T-0205 在 macOS 验证。
+- [x] AC3：失败项不会发布可读取的半成品，同一 UUID 可重开读取。run 44775125352 的 `swift test --package-path app` 实际执行了全部 3 个 `MediaLibraryTests`，含发布目录和重开检查。视频和 HEIC 回归样本仍为 AC2 与 T-0205 的验证项。
 
 ## 实施要点
 
@@ -38,3 +38,4 @@ updated: 2026-11-20
 
 - 2026-11-20：从 T-0205 细化引擎切片，保留 T-0205 的界面与全格式集成验收。
 - 2026-11-20：`MediaLibrary`、`MediaThumbnailRenderer` 和 3 个测试已写齐，待验证（L2）。人工核对 UUID 发布路径、失败清理、Apple API 可用版本和 Swift actor 边界。合成 2×1 PNG 的块校验均通过。无外部依赖或素材；`check_repo` 为 0 error。本机没有 `swift`，在 macOS 跑 `swift test --package-path app --filter MediaLibraryTests`，预期 3 个测试、0 失败；HEIC、MOV、MP4 和 Display P3 ICC 的实际文件验收留在 T-0205。
+- 2026-11-20：[run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 中 3 个 `MediaLibraryTests` 通过，含 JPEG 旋转与 PNG 导入。AC2 仍需补合成 HEIC、MOV、MP4、超长边和 Display P3 色彩配置验证，在 macOS 跑 `swift test --package-path app --filter MediaLibraryTests`，预期所有格式方向、尺寸和 P3 profile 断言通过。T-0205 仍保留 Finder 与全格式集成验收。

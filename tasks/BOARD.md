@@ -11,9 +11,9 @@
 | [T-0001](T-0001-research-review-and-repo-setup.md) | 调研复核与项目库搭建 | done | P0 | docs | none | — |
 | [T-0002](T-0002-collect-decisions.md) | 关键决策收集（D-01 ~ D-07） | blocked | P0 | docs | T-0001 | — |
 | [T-0003](T-0003-finalize-platform-and-distribution.md) | 平台与分发 ADR 定稿 | done | P0 | docs | T-0001 | — |
-| [T-0004](T-0004-git-and-github-setup.md) | Git 初始化 + GitHub 仓库 + gh CLI | in-progress | P0 | infra | T-0001 | — |
-| [T-0005](T-0005-ci-smoke-test.md) | CI 冒烟测试：云端 macOS 构建出最小 App | blocked | P0 | infra | T-0003, T-0004 | — |
-| [T-0006](T-0006-compositor-reuse-spike.md) | （条件性）Compositor 复用评估 | dropped | P2 | docs | T-0003 | — |
+| [T-0004](T-0004-git-and-github-setup.md) | Git 初始化 + GitHub 仓库 + gh CLI | done | P0 | infra | T-0001 | — |
+| [T-0005](T-0005-ci-smoke-test.md) | CI 冒烟测试：云端 macOS 构建出最小 App | done | P0 | infra | T-0003, T-0004 | — |
+| [T-0006](T-0006-compositor-reuse-spike.md) | Compositor 修图底座只读预评估 | review | P0 | docs | T-0003, T-0005 | F-07, F-08, F-13, F-14, F-21 |
 | [T-0007](T-0007-windows-swift-toolchain.md) | Windows 本地 Swift 工具链（L1 本地测试） | blocked | P1 | infra | none | — |
 
 ## M1 产品定义
@@ -29,12 +29,12 @@
 
 | ID | 标题 | 状态 | 优先级 | 模块 | 依赖 | 功能 |
 |---|---|---|---|---|---|---|
-| [T-0201](T-0201-mac-project-scaffold.md) | 多模块工程骨架（Package.swift + XcodeGen project.yml + Mac 祝福首屏 + L1 import 检查） | blocked | P0 | 全部 | T-0003 | — |
+| [T-0201](T-0201-mac-project-scaffold.md) | 多模块工程骨架（Package.swift + XcodeGen project.yml + Mac 祝福首屏 + L1 import 检查） | done | P0 | 全部 | T-0003 | — |
 | [T-0202](T-0202-mac-ci-pipeline.md) | CI 正式流水线：swift test + xcodebuild test + 打包产物 | ready | P0 | infra | T-0201 | — |
 | [T-0203](T-0203-mac-snapshot-pipeline.md) | 截图验证管线（快照测试 → artifact → 本地下载查看） | ready | P0 | DesignSystem, infra | T-0202 | — |
-| [T-0204](T-0204-birthday-core-projects-and-history.md) | BirthdayCore：工程模型 + 命令 / 撤销栈 + 草稿协议 | blocked | P0 | BirthdayCore | T-0201 | F-14 |
+| [T-0204](T-0204-birthday-core-projects-and-history.md) | BirthdayCore：工程模型 + 命令 / 撤销栈 + 草稿协议 | done | P0 | BirthdayCore | T-0201 | F-14 |
 | [T-0205](T-0205-media-import-and-storage.md) | MediaIO：Finder 选图、拖入与权限验收 | ready | P0 | MediaIO | T-0201, T-0207 | F-06 |
-| [T-0206](T-0206-file-draft-store.md) | MediaIO：草稿原子替换与恢复 | blocked | P0 | MediaIO | T-0204 | F-14 |
+| [T-0206](T-0206-file-draft-store.md) | MediaIO：草稿原子替换与恢复 | done | P0 | MediaIO | T-0204 | F-14 |
 | [T-0207](T-0207-local-media-library.md) | MediaIO：本地素材库与缩略图 | blocked | P0 | MediaIO | T-0201 | F-06 |
 
 ## M3 礼物体验
@@ -46,10 +46,12 @@
 | T-0303 | 彩蛋 + 生日当天全屏祝福动画 | backlog | P0 | GiftKit, DesignSystem | T-0301, T-0306 | F-03, F-05 |
 | T-0304 | 生日歌 / 语音祝福播放 | backlog | P0 | GiftKit, App | T-0301, T-0104, T-0306 | F-04 |
 
-| [T-0305](T-0305-gift-calendar.md) | GiftKit 公历生日、倒计时与相识自然日 | blocked | P0 | GiftKit | T-0201 | F-01, F-05 |
-| [T-0306](T-0306-gift-manifest.md) | GiftKit 回忆包清单校验与排序 | blocked | P0 | GiftKit | T-0201, T-0305 | F-02, F-03, F-04 |
+| [T-0305](T-0305-gift-calendar.md) | GiftKit 公历生日、倒计时与相识自然日 | done | P0 | GiftKit | T-0201 | F-01, F-05 |
+| [T-0306](T-0306-gift-manifest.md) | GiftKit 回忆包清单校验与排序 | done | P0 | GiftKit | T-0201, T-0305 | F-02, F-03, F-04 |
 
 ## M4 照片编辑
+
+T-0401 及其依赖链的新增自研修图引擎暂停，等待 [D-12](../STATUS.md) 决定复用路线。
 
 | ID | 标题 | 状态 | 优先级 | 模块 | 依赖 | 功能 |
 |---|---|---|---|---|---|---|
@@ -66,7 +68,7 @@
 
 | ID | 标题 | 状态 | 优先级 | 模块 | 依赖 | 功能 |
 |---|---|---|---|---|---|---|
-| [T-0501](T-0501-memory-templates-and-timeline.md) | 短片模板格式（TemplateKit）+ 时间轴模型（TimelineKit） | blocked | P0 | TemplateKit, TimelineKit | T-0204 | F-15 |
+| [T-0501](T-0501-memory-templates-and-timeline.md) | 短片模板格式（TemplateKit）+ 时间轴模型（TimelineKit） | done | P0 | TemplateKit, TimelineKit | T-0204 | F-15 |
 | T-0502 | 照片转视频渲染器（Ken Burns，AVAssetWriter） | backlog | P0 | VideoEngine | T-0501 | F-15 |
 | T-0503 | 转场 + 文字叠加 | backlog | P0 | VideoEngine | T-0502 | F-15 |
 | T-0504 | 音乐：时长 / 节拍分配、淡入淡出 | backlog | P0 | TimelineKit, VideoEngine | T-0502 | F-15 |

@@ -9,6 +9,7 @@
 | R01 | [调研报告.md](调研报告.md)（[docx](调研报告.docx)） | 主报告：iOS 图像/视频技术、开源库、竞品、玩法、技术方案、分发、合规 | 中高（数据已复核；工期估算按人工开发计算） |
 | R02 | [补充分析-iOS安装难度与Mac版方案.md](补充分析-iOS安装难度与Mac版方案.md)（[docx](补充分析-iOS安装难度与Mac版方案.docx)） | iOS 安装难度、Mac 版方案、$99 账号 FAQ | 中（**默认朋友有 MacBook，用户尚未确认**） |
 | R03 | [R03-fact-check-2026-11-20.md](R03-fact-check-2026-11-20.md) | Claude 二次复核：确认项、更正项、调研遗漏点 | 高 |
+| R04 | [R04-compositor-reuse.md](R04-compositor-reuse.md) | Compositor 固定源码、两条复用路线、离线分发和最小原型 | 静态源码核验，原型待运行 |
 
 ## 结论速览（看完这 6 条就够了）
 

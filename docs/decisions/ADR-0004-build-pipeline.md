@@ -1,12 +1,12 @@
 # ADR-0004：构建流水线 —— Windows 写代码 + GitHub Actions macOS + XcodeGen
 
-- 状态：**Proposed**（D-04、D-05 已确认，待 T-0004/T-0005 落地及冒烟回读）
+- 状态：**Accepted**（T-0004/T-0005 已完成首次私有仓库与 macOS 冒烟回读）
 - 日期：2026-11-20
 - 关联：[R03 §3.1–3.3](../research/R03-fact-check-2026-11-20.md)、ADR-0006、[verification.md](../workflow/verification.md)
 
 ## 背景
 
-- 开发机只有 Windows；Xcode 27 只能运行在 Apple 芯片的 Mac 上（macOS 26.6+）。
+- 开发机只有 Windows，使用 macOS runner 上的 Xcode 构建 Apple 平台产物。
 - 不买、不借 Mac 的前提下，所有 Apple 平台的编译、测试、打包都要在云端完成。
 - `.xcodeproj` 是机器生成的格式，在 Windows 上手写容易损坏。
 
@@ -36,3 +36,8 @@
 - ✅ 无需新增硬件；构建与测试在 GitHub Actions 留存日志。
 - ⚠️ 每轮反馈 5–15 分钟 → 任务切片要尽量让纯逻辑先在本地测完，减少 CI 往返。
 - ⚠️ 私有仓库使用账号的 Actions 额度，计量和超额处理以 [GitHub Actions 账单说明](https://docs.github.com/en/billing/concepts/product-billing/github-actions) 和账户设置为准。
+
+## 首次实测
+
+- 2026-11-20，私有仓库 `main` 的 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 成功。标签 `macos-26`，镜像 `macos-26-arm64` `20261117.0516.1`，macOS `26.7.2`，Xcode `26.6` (`17F113`)，Swift `6.3.3`，XcodeGen `2.48.0`。
+- `swift test --package-path app` 通过 47 个测试。AppMac Release 构建 21.852 秒，runner job 53 秒，从触发到 run 完成共 67 秒。已回读首屏 PNG、arm64 ad-hoc ZIP 及 SHA-256。覆盖范围、文件路径和校验值见 [T-0005](../../tasks/T-0005-ci-smoke-test.md)。

@@ -2,7 +2,7 @@
 id: T-0005
 title: CI 冒烟测试：云端 macOS 构建出最小 App
 milestone: M0
-status: blocked
+status: done
 priority: P0
 modules: infra
 features: none
@@ -32,11 +32,11 @@ updated: 2026-11-20
 复用 T-0201 的工程和 L1 单测。流程保持手动触发，T-0202 负责正式触发与回归。
 
 ## 验收标准
-- [ ] AC1：L2：CI 上 `swift test` 通过（贴出 run 编号）。
-- [ ] AC2：L2：CI 上 App 构建成功。
-- [ ] AC3：L3：截图 artifact 已下载到本地 `artifacts/`，AI 读图确认显示了"生日快乐"。
-- [ ] AC4：（Mac 版）zip 产物下载后结构正确（`.app/Contents/MacOS/…`），并用 `codesign -dv` 的日志确认是 ad-hoc 签名（在 CI 里执行）。
-- [ ] AC5：ADR-0004 改为 Accepted，补上实测的 runner / Xcode 版本 / 耗时。
+- [x] AC1：L2：run 44775125352 的 `swift test --package-path app` 共 47 个测试通过，38 个 XCTest 加 9 个 Swift Testing，0 失败。
+- [x] AC2：L2：同一 run 的 `xcodegen generate` 与 AppMac Release 构建成功，`xcodebuild` 用时 21.852 秒。
+- [x] AC3：L3：下载并查看 `artifacts/smoke/44775125352/birthday-smoke.png`，720×480，浅色背景居中显示「生日快乐」。
+- [x] AC4：下载的 `artifacts/smoke/44775125352/IOSPS.app.zip` 含 `IOSPS.app/Contents/MacOS/IOSPS`、`Info.plist` 和签名资源。ZIP CRC 与 SHA-256 校验通过，Mach-O 头为 arm64。CI 的 `codesign --verify --deep --strict` 通过，`codesign -dv` 和 `signature.txt` 均显示 `Signature=adhoc`。
+- [x] AC5：[ADR-0004](../docs/decisions/ADR-0004-build-pipeline.md) 已转 Accepted，记录 runner、Xcode、Swift 和耗时。
 
 ## 实施要点
 - 假设：直接复用 T-0201 工程以减少维护两个 App；实际运行仍依赖 T-0004。
@@ -62,3 +62,5 @@ gh run list --repo $iospsRepo --workflow ci.yml --branch main --event workflow_d
 - 2026-11-20：对 YAML 中五段 runner 脚本运行 Git for Windows Bash 的 `-n` 语法检查，退出码 0；该检查不产生 CI 运行或产物。
 - 2026-11-20：`gh auth status --hostname github.com` 联网核验已通过；剩余前置条件为 T-0004 的 D-04/D-05 和首次上传。
 - 2026-11-20：冒烟 SwiftPM 测试步骤已包含 T-0206/T-0207 的 9 个 macOS 用例，当前共 47 个测试声明。运行后以 CI 报告的实际数量为证据。
+- 2026-11-20：首次手动触发 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352)，`main`，SHA `8e8f61d14a5c0ed4214ec9b2af3d3d24ae21b083`。首次回读为 `in_progress`，已进入 SwiftPM 测试。
+- 2026-11-20：run 44775125352 终态 `success`，runner job 53 秒，提交到结束 67 秒。完整日志保存为 `artifacts/smoke/44775125352/run.log`。本地 ZIP SHA-256 为 `fcd141f1d376583c20a0f43c83cae12e85404dff9dcefafe468cbd3fcccd69db`。自查通过：AC1–AC5 已核对，L0 0 error，无实现占位符、越层依赖或新增未登记依赖／素材，任务卡、看板与 ADR 同步。

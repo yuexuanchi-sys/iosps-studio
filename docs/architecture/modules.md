@@ -7,7 +7,7 @@
 ## L1 纯逻辑层（禁止 import Apple 专有框架）
 
 ### BirthdayCore
-- **状态**：scaffolded（待 Swift 验证）
+- **状态**：active（工程模型与命令历史经首次 CI 验证）
 - **职责**：通用基础 —— 工程文件模型（`Project`、`PhotoEditDocument`、`VideoProject`）、命令模式 + 撤销 / 重做栈、草稿自动保存协议、ID / 时间工具。
 - **对外接口**：`Project` v1 封装照片或视频草稿，`MediaID` 引用本地库；`EditCommand<State>` 在值语义状态上执行，`UndoStack<State>` 保留 20 步；`DraftStore` 为 Sendable 异步协议，磁盘存储由 MediaIO 实现。
 - **依赖**：无。
@@ -15,7 +15,7 @@
 - **任务**：T-0204
 
 ### TemplateKit
-- **状态**：scaffolded（模板 v1 已实现，待 Swift 验证）
+- **状态**：active（短片模板 v1 经首次 CI 验证）
 - **职责**：模板 JSON 的格式定义、解析和校验 —— 回忆短片模板（每一幕的时长、转场、Ken Burns 运镜、文字、滤镜、音乐段落）、海报 / 贺卡模板、拼图模板；布局计算（输出纯几何数据）。
 - **依赖**：BirthdayCore。
 - **接口**：`MemoryTemplate` 按 v1 解码、循环镜头、约束过渡区间并保存音乐资源引用。字段和示例见 [短片模板 v1](../product/memory-template-format.md)。
@@ -23,7 +23,7 @@
 - **任务**：T-0501、T-0702、T-0704
 
 ### TimelineKit
-- **状态**：scaffolded（单轨整数帧模型已实现，待 Swift 验证）
+- **状态**：active（单轨整数帧模型经首次 CI 验证）
 - **职责**：视频时间轴模型与时间计算 —— 片段（素材引用、入点出点、变速）、转场重叠、总时长、按音乐时长 / 节拍给照片分配时长、分割和排序操作（都以命令的形式提供）。
 - **依赖**：BirthdayCore。
 - **接口**：`TimelineClip` 保存源区间，`Timeline` 校验切点／叠化并生成起始帧及总时长；帧率和时长上限由 BirthdayCore 的 `VideoTiming` 提供。
@@ -31,7 +31,7 @@
 - **任务**：T-0501、T-0504、T-0601 ~ T-0603
 
 ### GiftKit
-- **状态**：scaffolded（值类型与日期计算已接入，待 Swift 验证）
+- **状态**：active（日期计算和回忆包清单经首次 CI 验证）
 - **职责**：生日体验的逻辑 —— 生日 / 年龄 / 倒计时 / 相识天数计算、"是不是生日当天"的判断、彩蛋触发规则（连点次数、暗号匹配）、回忆内容清单（`memories.json`）的模型和解析。
 - **依赖**：跨平台 Foundation；目前无需链接 BirthdayCore。
 - **接口**：`LocalDay` 与 `GiftCalendar.metrics(on:birthday:metOn:)` 处理公历自然日和闰日周年；`GiftManifest` 解析 v1 回忆包、排序事件并限制相对路径。文件系统验证由导入层完成。
@@ -55,7 +55,7 @@
 - **任务**：T-0502 ~ T-0505、T-0602 ~ T-0606
 
 ### MediaIO
-- **状态**：scaffolded（磁盘草稿、素材库和缩略图已实现，待 macOS 验证）
+- **状态**：active（磁盘草稿、素材发布和 JPEG 方向经首次 CI 验证；全格式、色彩与 Finder 集成待验收）
 - **职责**：素材导入导出和权限 —— macOS 文件选择与拖拽、可选照片图库入口、保存到文件、缩略图生成、EXIF 方向和色彩空间规范化、`DraftStore` 的文件实现。**唯一允许出现 `#if os()` 的 L2 模块**。
 - **接口**：`FileDraftStore(directory:)` 用 actor 串行化草稿操作，按项目 UUID 原子替换完整 JSON。App 将其放在应用数据目录并共享同一个实例。
 - **接口**：`MediaLibrary(directory:)` 保留源文件副本，用 `MediaID` 恢复引用。导入成功时发布最多 512 像素的 Display P3 PNG 和原件，失败时逐项反馈。
@@ -66,14 +66,14 @@
 ## L3 界面层
 
 ### DesignSystem
-- **状态**：scaffolded（待 Swift 验证）
+- **状态**：active（首屏基础组件经 CI 构建及冒烟截图回读）
 - **职责**：共享的 SwiftUI 组件 —— 主题（颜色、字体、圆角）、按钮、滑杆、底部工具栏、空状态、进度视图、生日动效（烟花、彩带）。
 - **依赖**：SwiftUI。
 - **验证**：L3 快照截图。
 - **任务**：T-0103（规范）、T-0201（脚手架）、各 UI 任务
 
 ### AppMac / AppiOS（平台壳）
-- **状态**：AppMac scaffolded（待 CI 验证）；AppiOS 延后，见 [ADR-0003](../decisions/ADR-0003-target-platform.md)。
+- **状态**：AppMac active（arm64 Release 经 CI 构建）；AppiOS 延后，见 [ADR-0003](../decisions/ADR-0003-target-platform.md)。
 - **职责**：App 入口、导航、各页面组装、Mac 菜单、快捷键和全屏生日模式。
 - **依赖**：所有下层模块。
 - **验证**：L2 构建 + L3 UI 测试截图 + L4 真机验收。

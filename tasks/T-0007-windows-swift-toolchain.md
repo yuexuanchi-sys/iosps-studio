@@ -69,3 +69,4 @@ try {
 ## 进度日志
 - 2026-11-20：创建。
 - 2026-11-20：当前会话找不到 swift，WinGet 别名无法启动，WSL 无已安装发行版。等待用户在可交互环境完成开发者模式及官方工具链安装；也可先用 CI。AC1/AC2 尚无 L1 证据。
+- 2026-11-20：重新运行 `swift --version`、`winget --version` 与 `wsl --list --quiet`，分别确认命令不存在、WindowsApps 别名无法访问、无已安装的 Linux 发行版。本轮 L1 优先用 macOS CI。

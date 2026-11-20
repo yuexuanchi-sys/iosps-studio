@@ -2,7 +2,7 @@
 id: T-0201
 title: macOS 多模块工程骨架
 milestone: M2
-status: blocked
+status: done
 priority: P0
 modules: BirthdayCore, DesignSystem, AppMac
 features: none
@@ -25,8 +25,8 @@ updated: 2026-11-20
 
 ## 验收标准
 - [x] AC1：SwiftPM 产品、AppMac/XcodeGen、应用入口与许可登记俱全；L0 拒绝 L1 中越层或 Apple 专有 import。 证据：YAML 和字符串目录可解析；临时 GiftKit 文件允许 Foundation/BirthdayCore，AppKit、SwiftUI scoped import、TimelineKit 在正确行被拒绝。
-- [ ] AC2：`swift test --package-path app` 的 ID 用例通过。
-- [ ] AC3：在 macOS CI 运行 `xcodegen generate` 与 `xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Release -destination 'platform=macOS' build`，生成 arm64 App。
+- [x] AC2：`swift test --package-path app` 的 ID 用例通过。 证据见下方 run 44775125352。
+- [x] AC3：在 macOS CI 运行 `xcodegen generate` 与 `xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Release -destination 'platform=macOS' build`，生成 arm64 App。 证据见下方 run 44775125352。
 
 ## 实施要点
 - 假设：先接入有实际实现的 BirthdayCore、DesignSystem 和 AppMac；其余目标随首次切片加入，避免空壳。
@@ -35,3 +35,4 @@ updated: 2026-11-20
 ## 进度日志
 - 2026-11-20：从看板滚动细化。
 - 2026-11-20：工程已写齐，待验证（L1/L2）。L0 check_repo 0 error；Swift 测试命令找不到 swift，T-0005 首次 CI 验证时须 AC2/AC3 一并取证。逐文件人工核对目标、导入、局部资源与主线程隔离。
+- 2026-11-20：[run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 的 `swift test --package-path app`：`ProjectIDTests` 3/3；`xcodegen` 2.48.0 生成工程，`xcodebuild` 的 AppMac Release 构建成功，产物 arm64、部署目标 macOS 14.0。 自查通过：验收及依赖已核对，L0 0 error，无实现占位符、越层依赖或新增未登记依赖／素材，模块、ADR 与看板同步。

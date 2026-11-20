@@ -9,7 +9,7 @@
 | [ADR-0001](ADR-0001-native-swift-stack.md) | 采用 Apple 原生 Swift 技术栈 | Accepted | 2026-11-20 |
 | [ADR-0002](ADR-0002-no-ffmpeg.md) | 视频处理不使用 FFmpeg，只用 AVFoundation | Accepted | 2026-11-20 |
 | [ADR-0003](ADR-0003-target-platform.md) | 目标平台为 macOS | Accepted | 2026-11-20 |
-| [ADR-0004](ADR-0004-build-pipeline.md) | 构建流水线：Windows 写代码 + GitHub Actions macOS + XcodeGen | Proposed | 2026-11-20 |
+| [ADR-0004](ADR-0004-build-pipeline.md) | 构建流水线：Windows 写代码 + GitHub Actions macOS + XcodeGen | Accepted | 2026-11-20 |
 | [ADR-0005](ADR-0005-distribution.md) | macOS 礼物分发 | Accepted | 2026-11-20 |
 | [ADR-0006](ADR-0006-shared-core-architecture.md) | 跨平台核心 + 薄平台壳的分层架构 | Accepted | 2026-11-20 |
 
