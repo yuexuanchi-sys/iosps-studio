@@ -1,0 +1,57 @@
+name: IOSPSCompositorPrototype
+options:
+  deploymentTarget:
+    macOS: "26.0"
+settings:
+  base:
+    ARCHS: arm64
+    SDKROOT: macosx
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_APPROACHABLE_CONCURRENCY: "YES"
+    SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: "YES"
+    CLANG_ENABLE_MODULES: "YES"
+    GCC_C_LANGUAGE_STANDARD: gnu17
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+targets:
+  CompositorPrototype:
+    type: application
+    platform: macOS
+    sources:
+      - Prototype/Editor
+      - path: Prototype/compositor-license.txt
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_NAME: IOSPSCompositorPrototype
+        PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.compositorprototype
+        GENERATE_INFOPLIST_FILE: "YES"
+        INFOPLIST_FILE: Prototype/config/info.plist
+        ENABLE_APP_SANDBOX: "YES"
+        ENABLE_USER_SELECTED_FILES: readwrite
+        CODE_SIGN_ENTITLEMENTS: Prototype/config/prototype.entitlements
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_OBJC_BRIDGING_HEADER: Prototype/Editor/Compositor-Bridging-Header.h
+  CompositorPrototypeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Prototype/Tests
+    dependencies:
+      - target: CompositorPrototype
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.compositorprototype.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/IOSPSCompositorPrototype.app/Contents/MacOS/IOSPSCompositorPrototype
+schemes:
+  CompositorPrototype:
+    build:
+      targets:
+        CompositorPrototype: all
+        CompositorPrototypeTests: [test]
+    test:
+      config: Debug
+      targets:
+        - CompositorPrototypeTests

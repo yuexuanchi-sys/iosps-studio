@@ -7,3 +7,4 @@
 | XcodeGen | 将 project.yml 生成 Xcode 工程 | [XcodeGen 2.48.0](https://github.com/yonaskolb/XcodeGen/releases/tag/2.48.0) · [MIT](https://github.com/yonaskolb/XcodeGen/blob/2.48.0/LICENSE) | 否 |
 | actions/checkout v6.0.2 | CI 自动检出 | [MIT](https://github.com/actions/checkout/blob/de0fac2e4500dabe0009e67214ff5f5447ce83dd/LICENSE) | 否 |
 | actions/upload-artifact v6.0.0 | CI 上传 ZIP 与截图 | [MIT](https://github.com/actions/upload-artifact/blob/b7c566a772e6b6bfb58ed0dc250532a479d7789f/LICENSE) | 否 |
+| Compositor 源码 | 隔离原型的画布、编辑状态和导出 | [固定提交 4a17b264](https://github.com/robbietilton/Compositor/tree/4a17b264a93b6da5fa5ff81357e6194ef9ad61a2) · [MIT 与原始版权](../Prototype/compositor-license.txt) | 只随隔离原型 |

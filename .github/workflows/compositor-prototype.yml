@@ -1,0 +1,88 @@
+name: Compositor prototype
+
+on:
+  push:
+    branches: [t-0008-compositor-prototype]
+    paths:
+      - 'app/**'
+      - '.github/workflows/compositor-prototype.yml'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prototype:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Validate IOSPS and run baseline tests
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+          python3 tools/check_repo.py
+          swift test --package-path app
+      - name: Fetch pinned XcodeGen
+        env:
+          XCODEGEN_VERSION: "2.48.0"
+          XCODEGEN_SHA256: "620c9f0dc10849f94728ab5df52d225ebab8187439dd6fee1925e59e80dff892"
+        run: |
+          tools_dir="$RUNNER_TEMP/iosps-xcodegen"
+          mkdir -p "$tools_dir"
+          curl --fail --silent --show-error --location --retry 3 --output "$tools_dir/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          printf '%s  %s\n' "$XCODEGEN_SHA256" "$tools_dir/xcodegen.zip" | shasum -a 256 -c -
+          ditto -x -k "$tools_dir/xcodegen.zip" "$tools_dir"
+          executable="$(find "$tools_dir" -type f -name xcodegen -print -quit)"
+          test -x "$executable"
+          "$executable" --version
+          dirname "$executable" >> "$GITHUB_PATH"
+      - name: Build derived editor
+        working-directory: app
+        run: |
+          xcodegen generate --spec compositor-prototype.yml
+          time xcodebuild -project IOSPSCompositorPrototype.xcodeproj -scheme CompositorPrototype \
+            -configuration Release -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/iosps-prototype" build
+      - name: Check inherited editing
+        working-directory: app
+        run: |
+          xcodebuild -project IOSPSCompositorPrototype.xcodeproj -scheme CompositorPrototype \
+            -configuration Debug -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/iosps-prototype" -parallel-testing-enabled NO test
+      - name: Verify and package prototype
+        run: |
+          output="$RUNNER_TEMP/iosps-prototype-artifacts"
+          app="$RUNNER_TEMP/iosps-prototype/Build/Products/Release/IOSPSCompositorPrototype.app"
+          mkdir -p "$output"
+          test "$(lipo -archs "$app/Contents/MacOS/IOSPSCompositorPrototype")" = arm64
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist"
+          cmp app/Prototype/compositor-license.txt "$app/Contents/Resources/compositor-license.txt"
+          test ! -d "$app/Contents/Frameworks/Sparkle.framework"
+          codesign -d --entitlements :- "$app" > "$output/entitlements.plist"
+          grep -F 'com.apple.security.files.user-selected.read-write' "$output/entitlements.plist"
+          if grep -F 'com.apple.security.network.client' "$output/entitlements.plist"; then exit 1; fi
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv --verbose=4 "$app" 2>&1 | tee "$output/signature.txt"
+          grep -F 'Signature=adhoc' "$output/signature.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$output/IOSPSCompositorPrototype.app.zip"
+          (cd "$output" && shasum -a 256 IOSPSCompositorPrototype.app.zip > IOSPSCompositorPrototype.app.zip.sha256)
+      - name: Upload prototype artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: iosps-compositor-prototype
+          path: |
+            ${{ runner.temp }}/iosps-prototype-artifacts/IOSPSCompositorPrototype.app.zip
+            ${{ runner.temp }}/iosps-prototype-artifacts/IOSPSCompositorPrototype.app.zip.sha256
+            ${{ runner.temp }}/iosps-prototype-artifacts/signature.txt
+            ${{ runner.temp }}/iosps-prototype-artifacts/entitlements.plist
+          if-no-files-found: error
+          retention-days: 7
