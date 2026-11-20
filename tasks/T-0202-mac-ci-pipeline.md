@@ -36,3 +36,4 @@ updated: 2026-11-20
 
 ## 进度日志
 - 2026-11-20：从看板滚动细化。
+- 2026-11-20：[run 44777676454](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777676454) 由 `main` 推送触发，SwiftPM 与 Release 构建通过。失败日志 `artifacts/ci/44777676454/failed.log` 显示生成的测试宿主指向目标名 `AppMac.app/Contents/MacOS/AppMac`，而实际产品是 `IOSPS.app/Contents/MacOS/IOSPS`。在 `AppMacTests` 明确设置 `TEST_HOST` 指向实际产品，再用下一次推送验证。

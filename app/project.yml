@@ -39,6 +39,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.tests
         GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/IOSPS.app/Contents/MacOS/IOSPS
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
 schemes:
