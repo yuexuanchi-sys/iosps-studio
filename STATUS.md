@@ -4,12 +4,12 @@
 
 - **最后更新**：2026-11-20
 - **当前阶段**：M0 首次上传与 macOS 冒烟完成，Compositor 选定完整继承原型；M1 产品定义待验收，M2 工程基础已通过首次 CI
-- **当前任务**：[T-0202 正式 macOS CI](tasks/T-0202-mac-ci-pipeline.md)（`in-progress`），之后优先取 [T-0008](tasks/T-0008-compositor-integrated-prototype.md)。
+- **当前任务**：[T-0008 Compositor 派生编辑器构建与回归](tasks/T-0008-compositor-integrated-prototype.md)（`in-progress`）。正式 CI [run 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 已通过。
 - **执行方式**：按 [executor-prompt.md](docs/workflow/executor-prompt.md) 连续推进，WIP = 1
 
 ## 下一步
 
-1. **T-0202 → T-0008**：常规 CI 用代码推送实测后，按 [R04](docs/research/R04-compositor-reuse.md) 的标准验证 Compositor 完整继承原型（macOS 26+／arm64）。主线 AppMac 仍按 14.0 构建。
+1. **T-0008 → T-0009 → T-0010**：按 [R04](docs/research/R04-compositor-reuse.md) 验证派生编辑器（macOS 26+／arm64）、中文礼物界面、短片与离线真机。主线 AppMac 仍按 14.0 构建。
 2. **T-0203**：推进浅／深色及文字缩放快照。
 3. **T-0207 → T-0205**：补齐 HEIC、视频、色彩与尺寸的运行验收，再接 Finder 选取、拖放和权限反馈。
 4. **T-0301**：接生日主页与日期逻辑；T-0302/T-0304 使用回忆清单与用户素材。

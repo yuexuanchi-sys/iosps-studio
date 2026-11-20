@@ -2,7 +2,7 @@
 id: T-0202
 title: macOS 正式测试和 CI 打包
 milestone: M2
-status: in-progress
+status: done
 priority: P0
 modules: infra
 features: none
@@ -24,9 +24,9 @@ updated: 2026-11-20
 复用冒烟流程，定稿触发条件和权限，运行 L0/L1 与 macOS build/test，打包并上传可校验的产物。正式配置取首个已实测的 runner、工具版本和耗时为基准。
 
 ## 验收标准
-- [ ] AC1：CI 对代码变更自动运行，日志包含 L0、L1、AppMac 构建和测试。
-- [ ] AC2：签名与 ZIP 校验通过，artifact 可下载；任务卡记录成功 run 和耗时。
-- [ ] AC3：CI 权限、上传清单和密钥范围通过核对。
+- [x] AC1：[run 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 由 `main` 的代码推送触发，47 个 SwiftPM、1 个 AppMac 宿主测试均通过，L0 和 AppMac Release 成功。
+- [x] AC2：同一 run 的 Release 17.836 秒、runner job 67 秒、队列到结束 71 秒。已下载 `artifacts/ci/44777973616/IOSPS.app.zip`，CRC、包体结构、arm64 Mach-O、SHA-256 均通过。CI 验证原包和解包签名，`signature.txt` 为 `Signature=adhoc`。
+- [x] AC3：YAML/脚本审查确认权限 `contents: read`，checkout 不持久保存凭据，固定 action SHA，没有工作流密钥引用，五条固定产物路径均为合成快照或打包证据。
 
 ## 实施要点
 
@@ -37,3 +37,4 @@ updated: 2026-11-20
 ## 进度日志
 - 2026-11-20：从看板滚动细化。
 - 2026-11-20：[run 44777676454](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777676454) 由 `main` 推送触发，SwiftPM 与 Release 构建通过。失败日志 `artifacts/ci/44777676454/failed.log` 显示生成的测试宿主指向目标名 `AppMac.app/Contents/MacOS/AppMac`，而实际产品是 `IOSPS.app/Contents/MacOS/IOSPS`。在 `AppMacTests` 明确设置 `TEST_HOST` 指向实际产品，再用下一次推送验证。
+- 2026-11-20：修复提交 `b01062b64fc5d256fa48766775e5039b52fb96fe` 的自动 [run 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 成功。日志 `artifacts/ci/44777973616/run.log`，ZIP SHA-256 `44527cce5a4daf0884d4afedbac8544a1e327f1bff4e4e15e35f6e64c89c485f`。自查通过：验收、依赖、构建目标及产物逐项取证，无占位符、越层依赖或新增外部依赖和素材，验证文档、STATUS 和 BOARD 同步，`python tools/check_repo.py` 为 0 error。

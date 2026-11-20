@@ -1,22 +1,22 @@
 ---
 id: T-0008
-title: Compositor 完整继承隔离原型
+title: Compositor 派生编辑器构建与回归
 milestone: M0
-status: ready
+status: in-progress
 priority: P0
 modules: AppMac, GiftKit, MediaIO, VideoEngine
 features: F-01, F-02, F-07, F-08, F-13, F-14, F-15
 depends: T-0006, T-0202
-verify: L0,L1,L2,L3,L4
+verify: L0,L1,L2
 owner: AI+用户
 updated: 2026-11-20
 ---
 
-# T-0008 · Compositor 完整继承隔离原型
+# T-0008 · Compositor 派生编辑器构建与回归
 
 ## 目标
 
-在 macOS 26+／arm64 验证能否使用完整 Compositor 编辑器作为礼物原型的底座，同时保留现有 IOSPS 的工程和部署基线。
+在 macOS 26+／arm64 对完整继承路线做第一段验证，确认派生应用能够在 Swift 6 中构建，并保留裁剪、调色、文档和导出链路。[T-0009](T-0009-compositor-prototype-gift-interface.md) 接中文与回忆，[T-0010](T-0010-compositor-prototype-offline-movie.md) 验证短片和离线交付。
 
 ## 背景与依据
 
@@ -29,15 +29,15 @@ updated: 2026-11-20
 ## 验收标准
 
 - [ ] AC1：L1/L2，原 IOSPS 的 47 个 SwiftPM 测试通过；派生目标用 Swift 6 严格并发、macOS 26.0、arm64 Release 实际构建，记录 run、SHA、Xcode、签名与耗时。
-- [ ] AC2：L2/L3，简体中文编辑入口完成 JPEG/PNG 选择、画布平移缩放、固定比例裁剪、90° 旋转、曝光、饱和度、撤销重做、项目重开和原像素尺寸 PNG/JPEG 导出。核对源文件哈希、方向、ICC 和透明度，查看浅色、深色、放大字号截图及键盘结果。
-- [ ] AC3：L2/L3，首屏展示生日信息，读取虚构回忆包。编辑结果通过 `MediaID` 提供给短片入口，用单模板导出可播放的 3 秒／30 fps／90 帧无声 MP4。
-- [ ] AC4：L2/L4，下载并核对 ad-hoc ZIP、SHA-256、权限和许可证；目标机断网首次启动、修图与短片导出、退出重开。记录 12 MP 样本用时和峰值内存，区分 CI 与真机证据。
+- [ ] AC2：L2，使用合成样本回归固定比例裁剪、旋转、曝光／饱和度、撤销重做、项目重开和原像素尺寸 PNG/JPEG 导出。核对源文件哈希、方向、ICC 和透明度。
+- [ ] AC3：L2，CI 生成并校验原型 ad-hoc 签名 ZIP、SHA-256、权限和许可。上游 appcast、模型与无再分发依据的资产均排除。
 
 ## 实施要点
 
 - 假设：用 `t-0008-compositor-prototype` 隔离分支及独立原型工作流和应用标识。核对固定源码、许可与资源来源后只把构建所需的派生代码放入 `app/`。上游下载目录仅供只读，原型使用仓库自己的 CI 命令，移除上游签名、更新和模型下载路径。
-- 顺序：先验证原有编辑器构建和图像工作流，再接中文导航、`GiftKit`／`MediaIO`、短片入口与产物回读。每次开始代码改动前将所涉文件、实际验收命令与预期输出补入本卡。主线继续按 14.0 验收。
+- 交付物：隔离分支上的 `app/Prototype/` 派生代码、`app/compositor-prototype.yml`、原型 CI 与许可登记。用 `xcodegen generate --spec compositor-prototype.yml` 生成工程，再以 `xcodebuild -project IOSPSCompositorPrototype.xcodeproj -scheme CompositorPrototype -configuration Release -destination 'platform=macOS' build` 构建。按同一 scheme 运行合成照片回归测试，0 失败。主线继续按 14.0 验收。
 
 ## 进度日志
 
 - 2026-11-20：D-12 选定完整继承原型，从 T-0006 转入独立运行验收。静态证据和初始门槛见 R04。
+- 2026-11-20：按运行依赖拆为三个可验收切片。原 AC2 的中文、画布交互、键盘和三类 UI 截图，以及 AC3 的生日和回忆验收移到 T-0009。原 AC3 的 MP4 和原 AC4 的断网真机验收、性能记录移到 T-0010。保留构建和编辑内核的回归要求。

@@ -41,3 +41,7 @@
 
 - 2026-11-20，私有仓库 `main` 的 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 成功。标签 `macos-26`，镜像 `macos-26-arm64` `20261117.0516.1`，macOS `26.7.2`，Xcode `26.6` (`17F113`)，Swift `6.3.3`，XcodeGen `2.48.0`。
 - `swift test --package-path app` 通过 47 个测试。AppMac Release 构建 21.852 秒，runner job 53 秒，从触发到 run 完成共 67 秒。已回读首屏 PNG、arm64 ad-hoc ZIP 及 SHA-256。覆盖范围、文件路径和校验值见 [T-0005](../../tasks/T-0005-ci-smoke-test.md)。
+
+## 修订记录
+
+- 2026-11-20：常规 CI 已在 [run 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 验证代码推送触发、SwiftPM、AppMac Debug 宿主测试、Release 构建与 ZIP 解包签名。Release 耗时 17.836 秒，runner job 67 秒。权限、下载、SHA-256 见 [T-0202](../../tasks/T-0202-mac-ci-pipeline.md)。
