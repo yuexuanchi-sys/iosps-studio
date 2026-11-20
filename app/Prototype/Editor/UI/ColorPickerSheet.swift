@@ -196,7 +196,7 @@ struct ColorPickerSheet: View {
 }
 
 /// A small pointer aiming right: a round back tapering to a sharp tip, like a pin.
-private struct HueArrow: Shape {
+private nonisolated struct HueArrow: Shape {
     func path(in rect: CGRect) -> Path {
         let radius = rect.height / 2
         let center = CGPoint(x: rect.minX + radius, y: rect.midY)
