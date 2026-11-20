@@ -644,7 +644,7 @@ final class FilterEdit {
     /// Volumetric Light's first preview, held for the depth model (`beginFilter`).
     @ObservationIgnored var waitsForDepth = false
     /// Previews render from a copy no larger than this on its longest side.
-    static let previewLimit: CGFloat = 2048
+    nonisolated static let previewLimit: CGFloat = 2048
 
     /// `growingTo`: a document area the layer's grid should cover (Content-Aware Fill's selection on the canvas).
     /// A blur grows the grid by its own reach instead, and again if its amount is raised.
@@ -677,7 +677,7 @@ final class FilterEdit {
     }
 
     /// The room a blur needs around the layer: about three standard deviations, or half a streak.
-    static func blurMargin(_ kind: FilterKind, _ settings: FilterSettings) -> CGFloat {
+    nonisolated static func blurMargin(_ kind: FilterKind, _ settings: FilterSettings) -> CGFloat {
         switch kind {
         case .gaussianBlur: return settings.preserveTransparency ? 0 : CGFloat(settings.radius * 3 + 2)
         case .motionBlur: return CGFloat(settings.distance / 2 + 2)

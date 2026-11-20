@@ -65,10 +65,24 @@ private final class ProjectWindowDelegate: NSObject, NSWindowDelegate {
         }
         return false
     }
-    override func responds(to selector: Selector!) -> Bool {
-        super.responds(to: selector) || previous?.responds(to: selector) == true
+    nonisolated override func responds(to selector: Selector!) -> Bool {
+        if super.responds(to: selector) { return true }
+        guard Thread.isMainThread else { return false }
+        return MainActor.assumeIsolated { previous?.responds(to: selector) == true }
     }
-    override func forwardingTarget(for selector: Selector!) -> Any? {
-        previous?.responds(to: selector) == true ? previous : super.forwardingTarget(for: selector)
+
+    nonisolated override func forwardingTarget(for selector: Selector!) -> Any? {
+        if Thread.isMainThread {
+            let forwarded = MainActor.assumeIsolated {
+                ForwardedTarget(delegate: previous?.responds(to: selector) == true ? previous : nil)
+            }
+            if let delegate = forwarded.delegate { return delegate }
+        }
+        return super.forwardingTarget(for: selector)
+    }
+
+    /// Objective-C calls this override synchronously on the window thread.
+    private nonisolated struct ForwardedTarget: @unchecked Sendable {
+        let delegate: (any NSWindowDelegate)?
     }
 }

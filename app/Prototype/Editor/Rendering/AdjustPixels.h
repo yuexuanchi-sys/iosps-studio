@@ -108,8 +108,9 @@ void adjust_tonal_contrast(uint8_t *rgba, const uint8_t *blurred, size_t width, 
                            double shadows, double midtones, double highlights);
 // Set by the app to run Luminance noise reduction's non-local means on the GPU (MetalNonlocalMeans): `luma` and
 // `coverage` in, `out` the smoothed brightness, all width × height. Returns 0 to have it worked out here instead.
-extern int (*adjust_nonlocal_means_gpu)(const float *luma, const float *coverage, float *out, size_t width, size_t height,
-                                        int search, int patch, double h, double sigma);
+typedef int (*AdjustNonlocalMeansGPU)(const float *luma, const float *coverage, float *out, size_t width, size_t height,
+                                      int search, int patch, double h, double sigma);
+void adjust_set_nonlocal_means_gpu(AdjustNonlocalMeansGPU callback);
 // Manual noise reduction, then sharpening. `scale` maps radius to preview pixels. Applied after the creative grade.
 void adjust_camera_raw_detail(uint8_t *rgba, size_t width, size_t height, size_t stride,
                               double sharpenAmount, double sharpenRadius, double sharpenDetail, double sharpenMasking,

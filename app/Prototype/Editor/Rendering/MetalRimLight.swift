@@ -204,7 +204,7 @@ kernel void rimCombine(texture2d<float, access::read> image [[texture(0)]],
 
 /// Runs `MetalRimLight` inside a Core Image graph: its lighting, with eight inputs, or laying it over the photo, with
 /// two. Inputs are read a texel to either side, for the normals.
-final class RimLightKernel: CIImageProcessorKernel {
+nonisolated final class RimLightKernel: CIImageProcessorKernel {
     override class var outputFormat: CIFormat { .RGBAf }
     override class func formatForInput(at input: Int32) -> CIFormat { .RGBAf }
 

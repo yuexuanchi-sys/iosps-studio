@@ -69,6 +69,21 @@ struct PrototypeEditorTests {
         #expect(exposed.width == fixture.width && desaturated.height == fixture.height)
     }
 
+    @Test
+    func jpegImportAppliesSourceOrientation() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".jpg")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let fixture = try makeImage()
+        let destination = try #require(CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil))
+        let orientation = [kCGImagePropertyOrientation: CGImagePropertyOrientation.right.rawValue] as CFDictionary
+        CGImageDestinationAddImage(destination, fixture, orientation)
+        try #require(CGImageDestinationFinalize(destination))
+
+        let imported = try await ImageImporter.shared.decode(url)
+        #expect(imported.image.width == fixture.height)
+        #expect(imported.image.height == fixture.width)
+    }
+
     private func makeImage() throws -> CGImage {
         let space = try #require(CGColorSpace(name: CGColorSpace.sRGB))
         let bitmap = try #require(CGContext(data: nil, width: 64, height: 48, bitsPerComponent: 8, bytesPerRow: 0,

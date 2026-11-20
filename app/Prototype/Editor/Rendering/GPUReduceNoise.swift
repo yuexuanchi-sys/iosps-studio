@@ -17,7 +17,7 @@ nonisolated enum GPUReduceNoise {
 
 /// Works on the CPU's copy of its region, as the C code it runs needs. In BGRA: macOS 26 hands a kernel no other 8-bit
 /// layout (its RGBA one is refused), so red and blue are swapped to the C code's order and back.
-final class ReduceNoiseKernel: CIImageProcessorKernel {
+nonisolated final class ReduceNoiseKernel: CIImageProcessorKernel {
     /// How far the search, its patches and the color smoothing reach, in the canvas's pixels.
     static let margin: CGFloat = 24
 

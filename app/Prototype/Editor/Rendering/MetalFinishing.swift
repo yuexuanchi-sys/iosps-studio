@@ -131,7 +131,7 @@ kernel void tonalContrast(texture2d<float, access::read> image [[texture(0)]],
 }
 
 /// Runs `MetalFinishing`'s kernels inside a Core Image graph, as `DispersionKernel` runs RGB Split's.
-final class FinishingKernel: CIImageProcessorKernel {
+nonisolated final class FinishingKernel: CIImageProcessorKernel {
     /// Whether Core Image hands over textures with their first row at the top of their region.
     static let rowsTopDown = true
 

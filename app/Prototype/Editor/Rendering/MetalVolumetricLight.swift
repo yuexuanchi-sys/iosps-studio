@@ -219,7 +219,7 @@ kernel void volumetricCombine(texture2d<float, access::sample> image [[texture(0
 
 /// Runs `MetalVolumetricLight` inside a Core Image graph: the beams, which read the whole image (`extent`) for every
 /// pixel, or laying them and the haze over the photo, which reads each input where it is.
-final class VolumetricLightKernel: CIImageProcessorKernel {
+nonisolated final class VolumetricLightKernel: CIImageProcessorKernel {
     override class var outputFormat: CIFormat { .RGBAf }
     override class func formatForInput(at input: Int32) -> CIFormat { .RGBAf }
 

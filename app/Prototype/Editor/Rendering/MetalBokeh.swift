@@ -141,7 +141,7 @@ kernel void bokeh(texture2d<float, access::sample> image [[texture(0)]],
 }
 
 /// Runs `MetalBokeh` inside a Core Image graph, as `DispersionKernel` runs RGB Split's.
-final class BokehKernel: CIImageProcessorKernel {
+nonisolated final class BokehKernel: CIImageProcessorKernel {
     override class var outputFormat: CIFormat { .RGBAh }
     override class func formatForInput(at input: Int32) -> CIFormat { .RGBAh }
 

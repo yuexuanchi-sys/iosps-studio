@@ -282,7 +282,7 @@ private struct TypeFontPicker: NSViewRepresentable {
             }
         }
         /// Finished strings, never changed after they're made, handed over to the main thread.
-        private struct Made: @unchecked Sendable { let names: [String: NSAttributedString] }
+        private nonisolated struct Made: @unchecked Sendable { let names: [String: NSAttributedString] }
         nonisolated private static func makeStyledName(_ name: String) -> NSAttributedString {
             guard let font = NSFont(name: name, size: NSFont.systemFontSize),
                   name.unicodeScalars.filter({ $0.properties.isAlphabetic }).allSatisfy({ font.coveredCharacterSet.contains($0) })

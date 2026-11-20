@@ -184,16 +184,33 @@ final class TransformOverlay: NSView {
             antsPendingStep = step
             antsTask?.cancel()
             let canvas = CGRect(origin: .zero, size: document.size)
+            guard let immutable = OutlinePath(path) else {
+                antsPendingStep = nil
+                return path
+            }
             antsTask = Task { [weak self] in
-                let traced = await Task.detached(priority: .userInitiated) { Self.traceOutline(path, canvas: canvas, step: step) }.value
+                let traced = await Task.detached(priority: .userInitiated) {
+                    Self.traceOutline(immutable.path, canvas: canvas, step: step).flatMap(OutlinePath.init)
+                }.value
                 guard let self, !Task.isCancelled, self.antsSource === path, self.antsPendingStep == step else { return }
                 self.antsPendingStep = nil
-                if let traced { self.antsLevel = (traced, step) }
+                if let traced { self.antsLevel = (traced.path, step) }
                 self.needsDisplay = true
             }
         }
         // Until the new step is traced, the last one stands in: a little coarse or fine for a moment, never slow.
         return antsLevel?.path
+    }
+
+    /// Transfers a fresh, immutable copy rather than a potentially mutable subclass.
+    private nonisolated struct OutlinePath: @unchecked Sendable {
+        let path: CGPath
+
+        init?(_ original: CGPath) {
+            var identity = CGAffineTransform.identity
+            guard let copy = original.copy(using: &identity) else { return nil }
+            path = copy
+        }
     }
 
     /// `path` filled into a mask fine enough to fill quickly, averaged down to `step` screen pixels per document pixel,

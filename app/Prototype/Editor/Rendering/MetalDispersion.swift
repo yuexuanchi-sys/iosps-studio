@@ -264,7 +264,7 @@ kernel void spectrum(texture2d<float, access::sample> image [[texture(0)]],
 
 /// Runs `MetalDispersion` inside a Core Image graph, so the canvas's GPU drawing can show an RGB Split adjustment
 /// layer without leaving the GPU.
-final class DispersionKernel: CIImageProcessorKernel {
+nonisolated final class DispersionKernel: CIImageProcessorKernel {
     /// Whether Core Image hands over textures with their first row at the top of their region.
     static let rowsTopDown = true
 

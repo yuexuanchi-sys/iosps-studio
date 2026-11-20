@@ -5,7 +5,7 @@ import AppKit
 /// Its glyphs are clear: the canvas draws the text as the layer's own pixels underneath, as Photoshop does, so
 /// what is typed looks the same at any zoom as it will once it is committed.
 /// Draws text selections translucent, focused or not.
-private final class SeeThroughSelectionLayout: NSLayoutManager {
+private nonisolated final class SeeThroughSelectionLayout: NSLayoutManager {
     override func fillBackgroundRectArray(_ rectArray: UnsafePointer<NSRect>, count rectCount: Int,
                                           forCharacterRange charRange: NSRange, color: NSColor) {
         color.withAlphaComponent(min(color.alphaComponent, 0.45)).setFill()

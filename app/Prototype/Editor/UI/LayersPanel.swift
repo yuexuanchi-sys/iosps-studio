@@ -178,10 +178,10 @@ struct CheckerCircleIcon: View {
     }
 }
 
-private final class FooterMenuItem: NSMenuItem {
+private nonisolated final class FooterMenuItem: NSMenuItem {
     private let run: (@MainActor () -> Void)?
 
-    init(title: String, action: @escaping @MainActor () -> Void) {
+    @MainActor init(title: String, action: @escaping @MainActor () -> Void) {
         run = action
         super.init(title: title, action: #selector(choose), keyEquivalent: "")
         target = self

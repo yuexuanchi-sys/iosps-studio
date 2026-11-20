@@ -2960,8 +2960,9 @@ extension CanvasView {
             guard let context = try? BrushRaster.context(width: width, height: height, mask: false) else { return }
             self.session.drawLiveComposite(document, in: context)
             guard let below = context.makeImage() else { return }
+            let documentSize = document.size
             Task.detached(priority: .userInitiated) {
-                guard let image = try? adjustment.apply(below, document: document.size) else { return }
+                guard let image = try? adjustment.apply(below, document: documentSize) else { return }
                 await MainActor.run {
                     guard self.exactLatest[id] == key else { return }
                     self.exactAdjustments = self.exactAdjustments.filter { self.exactLatest[$0.key] != nil }

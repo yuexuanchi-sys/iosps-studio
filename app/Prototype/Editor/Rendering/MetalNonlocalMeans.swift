@@ -1,14 +1,14 @@
 import Metal
 
 /// Reduce Noise's non-local means (and Camera Raw's Luminance noise reduction) on the GPU: the same matching as
-/// `nonlocal_means` in AdjustPixels.c, which hands its work here through `adjust_nonlocal_means_gpu` and does it itself
+/// `nonlocal_means` in AdjustPixels.c, which hands its work here through `adjust_set_nonlocal_means_gpu` and does it itself
 /// only when this can't. Each group of threads keeps its block of pixels and the reach of their search around it in
 /// fast shared memory, so each pixel's thousands of comparisons read from there rather than from the image.
 nonisolated final class MetalNonlocalMeans: @unchecked Sendable {
     static let shared: MetalNonlocalMeans? = try? MetalNonlocalMeans()
     /// Points the C code at the GPU; touched before the noise reduction runs.
     static let installed: Void = {
-        adjust_nonlocal_means_gpu = { luma, coverage, out, width, height, search, patch, h, sigma in
+        adjust_set_nonlocal_means_gpu { luma, coverage, out, width, height, search, patch, h, sigma in
             guard let luma, let coverage, let out, let gpu = MetalNonlocalMeans.shared else { return 0 }
             return gpu.run(luma, coverage, out, width: width, height: height, search: Int(search), patch: Int(patch),
                            h: h, sigma: sigma) ? 1 : 0

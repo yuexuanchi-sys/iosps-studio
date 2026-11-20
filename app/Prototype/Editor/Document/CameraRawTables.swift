@@ -28,7 +28,21 @@ nonisolated enum CameraRawTables {
     private static let adaptiveValues: [Double] = [-100, -50, -25, 0, 25, 50, 100]
 
     /// Every table, red slowest then green then blue, 3 bytes a color. Read once and kept for the app's life.
-    static let tables: UnsafeMutablePointer<UInt8>? = load()
+    private static let tables = load().map(ReadOnlyTables.init)
+
+    /// The allocation is initialized before publication and only read afterwards.
+    private nonisolated final class ReadOnlyTables: @unchecked Sendable {
+        private let storage: UnsafeMutablePointer<UInt8>
+        var bytes: UnsafePointer<UInt8> { UnsafePointer(storage) }
+
+        init(_ storage: UnsafeMutablePointer<UInt8>) {
+            self.storage = storage
+        }
+
+        deinit {
+            storage.deallocate()
+        }
+    }
 
     /// The file holds, for each table and channel in turn, each entry's change from no change, in steps of `step` levels
     /// (the rounding is at most a level, within the jitter of Photoshop's own 8-bit renders), as a running difference
@@ -67,7 +81,7 @@ nonisolated enum CameraRawTables {
     static var exposureTables: UnsafePointer<UInt8>? { table(exposureStart) }
 
     private static func table(_ index: Int) -> UnsafePointer<UInt8>? {
-        tables.map { UnsafePointer($0 + index * entries) }
+        tables.map { $0.bytes + index * entries }
     }
 
     /// A stage from up to eight tables and their weights.
