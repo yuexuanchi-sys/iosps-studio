@@ -3,13 +3,13 @@
 当前交付目标是 macOS。首次 macOS CI 成功，现优先评估以 Compositor 复用修图能力。
 
 - **最后更新**：2026-11-20
-- **当前阶段**：M0 首次上传与 macOS 冒烟完成，Compositor 选定完整继承原型；M1 产品定义待验收，M2 工程基础已通过首次 CI
-- **当前任务**：[T-0008 Compositor 派生编辑器构建与回归](tasks/T-0008-compositor-integrated-prototype.md)（`in-progress`）。正式 CI [run 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 已通过。
+- **当前阶段**：M0 私有仓库、macOS CI 和 Compositor 派生编辑器构建已验收；M1 产品定义待验收，M2 主线正式 CI 已通过
+- **当前任务**：[T-0009 Compositor 原型中文编辑、生日和回忆](tasks/T-0009-compositor-prototype-gift-interface.md)（`ready`）。[T-0008](tasks/T-0008-compositor-integrated-prototype.md) 的 [run 44784457809](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44784457809) 已通过并下载回读。
 - **执行方式**：按 [executor-prompt.md](docs/workflow/executor-prompt.md) 连续推进，WIP = 1
 
 ## 下一步
 
-1. **T-0008 → T-0009 → T-0010**：按 [R04](docs/research/R04-compositor-reuse.md) 验证派生编辑器（macOS 26+／arm64）、中文礼物界面、短片与离线真机。主线 AppMac 仍按 14.0 构建。
+1. **T-0009 → T-0010**：在 `artifacts/worktrees/t-0008-compositor-prototype` 的 `t-0008-compositor-prototype` 分支接中文礼物界面和回忆，再接短片和离线真机验收。派生编辑器的 47 个基线用例、3 个原型用例、Swift 6／arm64 Release 和 ZIP 已验证。按 [R04](docs/research/R04-compositor-reuse.md) 保留验收门槛。
 2. **T-0203**：推进浅／深色及文字缩放快照。
 3. **T-0207 → T-0205**：补齐 HEIC、视频、色彩与尺寸的运行验收，再接 Finder 选取、拖放和权限反馈。
 4. **T-0301**：接生日主页与日期逻辑；T-0302/T-0304 使用回忆清单与用户素材。
@@ -42,6 +42,8 @@
 ## 环境和边界
 
 - 冒烟 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 为 `success`，47 个测试通过，AppMac arm64 Release 和签名通过，已打开首屏 PNG 并验证 ZIP，详见 [T-0005](tasks/T-0005-ci-smoke-test.md)。
+- 主线正式 CI [run 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 跑过 47 个 SwiftPM 用例、1 个 AppMac 宿主用例及 Release 签名包回读，详见 [T-0202](tasks/T-0202-mac-ci-pipeline.md)。
+- 隔离原型产物 `artifacts/prototype/44784457809/IOSPSCompositorPrototype.app.zip` 已核对。编译使用 Xcode 27.1／Swift 6.4，原型下限 26.0。主线构建使用 macOS 14.0／arm64 部署目标。
 - Windows 11 有 git、Python 和 Node；Apple 构建使用 macOS GitHub runner。
 - Swift 6、SwiftUI、Core Image/Metal、AVFoundation、Vision；工程先做 AppMac，L1 模块保持跨平台。
 - 构建只含公开资源；个人目录由 `.gitignore` 排除。最低平台见 [ADR-0003](docs/decisions/ADR-0003-target-platform.md)，签名路径见 [ADR-0005](docs/decisions/ADR-0005-distribution.md)。

@@ -5,6 +5,17 @@
 
 ---
 
+## 2026-11-20 · 首次 macOS CI 与 Compositor 派生编辑器验证
+
+- **任务**：T-0004、T-0005、T-0202、T-0006、T-0008 已完成。首轮 CI 同时完成 T-0201、T-0204、T-0206、T-0305、T-0306、T-0501 的运行验收。T-0207 部分验收，余下全格式／色彩测试。T-0009 已细化，待接取。
+- **完成**：D-04/D-05 确认私有仓库和本轮 Git 权限。建立 `yuexuanchi-sys/iosps-studio`，审计 93 个首次暂存路径，`main` 首推 SHA `8e8f61d`。R04 的只读评估确认上游 `4a17b264` 的 macOS 26／Apple 芯片要求与复用边界。D-12 确认先做完整继承原型，代码在 `artifacts/worktrees/t-0008-compositor-prototype` 的私有 `t-0008-compositor-prototype` 分支。
+- **验证**：[冒烟 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 通过 47 个测试及 arm64 Release，已查看 `artifacts/smoke/44775125352/birthday-smoke.png` 并核对 ZIP。 [正式 CI 44777973616](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44777973616) 通过 47 个 SwiftPM、1 个宿主测试及签名包回读。 [原型 44784457809](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44784457809) 测试 SHA `8001a93bf62f5bc58c6365d3aec8782424f06ecf`，47 基线、3 原型用例，Swift 6／Xcode 27.1，Release 75.863 秒。`artifacts/prototype/44784457809/` 的 ZIP、日志、SHA-256、签名与权限已回读。L0 为 0 error，2 个既有 warning 为 T-0102/T-0103 等 T-0101 验收。
+- **未完成**：T-0009 中文界面、生日和回忆及 L3 截图，T-0010 短片与目标机断网验收。T-0203 主线快照、T-0207 剩余格式及 P3、T-0205 Finder 集成继续待办。Windows `swift --version` 找不到命令。正式迁移或提高主线下限等待原型证据与用户确认。
+- **注意**：Windows Git 全局代理不可达，使用单次 `git -c http.proxy=` 配合 gh 凭据助手。原型 Xcode 26.6 在 Swift 6 优化阶段复现 IRGen 崩溃，改用 `xcode-27` 后完成构建。Release 关闭 Xcode 自动注入调试权限，CI 比对签名权限并解包验签。主线仍按 macOS 14.0／arm64 验收。
+- **下一步**：上下文交接。先在原型工作树按 T-0009 复用 `GiftKit` 和应用会话，接简体中文导航、生日与合成回忆包，再运行 `xcodebuild -project IOSPSCompositorPrototype.xcodeproj -scheme CompositorPrototype -destination 'platform=macOS' test`，回读浅、深色与放大字号截图。随后执行 T-0010。
+
+---
+
 ## 2026-11-20 · GitHub 登录验证、MacBook 基线及 MediaIO
 
 - **任务**：T-0004 的登录 AC2 已勾选，T-0004/T-0005 仍等 D-04/D-05；T-0205 拆出 T-0206/T-0207，两张新卡待 macOS 验证。
