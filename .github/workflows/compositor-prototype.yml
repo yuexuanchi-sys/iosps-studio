@@ -68,12 +68,22 @@ jobs:
           cmp app/Prototype/compositor-license.txt "$app/Contents/Resources/compositor-license.txt"
           test ! -d "$app/Contents/Frameworks/Sparkle.framework"
           codesign -d --entitlements :- "$app" > "$output/entitlements.plist"
-          grep -F 'com.apple.security.files.user-selected.read-write' "$output/entitlements.plist"
-          if grep -F 'com.apple.security.network.client' "$output/entitlements.plist"; then exit 1; fi
+          python3 - app/Prototype/config/prototype.entitlements "$output/entitlements.plist" <<'PY'
+          from pathlib import Path
+          import plistlib
+          import sys
+
+          expected, signed = (plistlib.loads(Path(path).read_bytes()) for path in sys.argv[1:])
+          if signed != expected:
+              raise SystemExit(f"Unexpected signed entitlements: {signed}")
+          PY
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dv --verbose=4 "$app" 2>&1 | tee "$output/signature.txt"
           grep -F 'Signature=adhoc' "$output/signature.txt"
           ditto -c -k --sequesterRsrc --keepParent "$app" "$output/IOSPSCompositorPrototype.app.zip"
+          archive_check="$RUNNER_TEMP/iosps-prototype-package-check"
+          ditto -x -k "$output/IOSPSCompositorPrototype.app.zip" "$archive_check"
+          codesign --verify --deep --strict --verbose=2 "$archive_check/IOSPSCompositorPrototype.app"
           (cd "$output" && shasum -a 256 IOSPSCompositorPrototype.app.zip > IOSPSCompositorPrototype.app.zip.sha256)
       - name: Upload prototype artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

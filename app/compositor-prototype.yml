@@ -34,6 +34,9 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Prototype/config/prototype.entitlements
         SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         SWIFT_OBJC_BRIDGING_HEADER: Prototype/Editor/Compositor-Bridging-Header.h
+      configs:
+        Release:
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: "NO"
   CompositorPrototypeTests:
     type: bundle.unit-test
     platform: macOS
