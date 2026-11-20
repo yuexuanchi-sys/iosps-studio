@@ -968,8 +968,9 @@ extension EditorSession {
     /// Renders the newest settings; changes that arrive mid-render wait for it rather than
     /// cancelling it, so dragging a slider keeps the canvas updating.
     private func renderFilterPreview(_ edit: FilterEdit) {
-        guard filterEdit === edit, edit.previewTask == nil, var job = edit.pending else { return }
-        if job.kind == .cameraRaw { job.cameraRawBrightness = edit.previewBrightness }
+        guard filterEdit === edit, edit.previewTask == nil, var pending = edit.pending else { return }
+        if pending.kind == .cameraRaw { pending.cameraRawBrightness = edit.previewBrightness }
+        let job = pending
         edit.pending = nil
         let placement = edit.pendingTransform
         let sourceVersion = edit.previewSourceVersion

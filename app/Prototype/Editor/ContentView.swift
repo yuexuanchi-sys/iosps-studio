@@ -433,7 +433,7 @@ extension View {
         monitor = nil
         editing = false
     }
-    deinit {
+    isolated deinit {
         if let monitor { NSEvent.removeMonitor(monitor) }
     }
 }

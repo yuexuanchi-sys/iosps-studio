@@ -351,7 +351,7 @@ final class InlineTextEditor: NSView, NSTextViewDelegate {
             return event
         }
     }
-    deinit {
+    isolated deinit {
         if let moveMonitor { NSEvent.removeMonitor(moveMonitor) }
     }
     func pointerMoved(_ event: NSEvent) {

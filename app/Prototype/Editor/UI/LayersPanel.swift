@@ -192,7 +192,7 @@ private nonisolated final class FooterMenuItem: NSMenuItem {
         super.init(coder: coder)
     }
 
-    @objc private func choose() { MainActor.assumeIsolated { run?() } }
+    @MainActor @objc private func choose() { run?() }
 }
 
 private struct FooterMenuAnchorView: NSViewRepresentable {
