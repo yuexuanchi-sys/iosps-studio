@@ -13,8 +13,9 @@
 | [T-0003](T-0003-finalize-platform-and-distribution.md) | 平台与分发 ADR 定稿 | done | P0 | docs | T-0001 | — |
 | [T-0004](T-0004-git-and-github-setup.md) | Git 初始化 + GitHub 仓库 + gh CLI | done | P0 | infra | T-0001 | — |
 | [T-0005](T-0005-ci-smoke-test.md) | CI 冒烟测试：云端 macOS 构建出最小 App | done | P0 | infra | T-0003, T-0004 | — |
-| [T-0006](T-0006-compositor-reuse-spike.md) | Compositor 修图底座只读预评估 | review | P0 | docs | T-0003, T-0005 | F-07, F-08, F-13, F-14, F-21 |
+| [T-0006](T-0006-compositor-reuse-spike.md) | Compositor 修图底座只读预评估 | done | P0 | docs | T-0003, T-0005 | F-07, F-08, F-13, F-14, F-21 |
 | [T-0007](T-0007-windows-swift-toolchain.md) | Windows 本地 Swift 工具链（L1 本地测试） | blocked | P1 | infra | none | — |
+| [T-0008](T-0008-compositor-integrated-prototype.md) | Compositor 完整继承隔离原型 | ready | P0 | AppMac, GiftKit, MediaIO, VideoEngine | T-0006, T-0202 | F-01, F-02, F-07, F-08, F-13, F-14, F-15 |
 
 ## M1 产品定义
 
@@ -30,7 +31,7 @@
 | ID | 标题 | 状态 | 优先级 | 模块 | 依赖 | 功能 |
 |---|---|---|---|---|---|---|
 | [T-0201](T-0201-mac-project-scaffold.md) | 多模块工程骨架（Package.swift + XcodeGen project.yml + Mac 祝福首屏 + L1 import 检查） | done | P0 | 全部 | T-0003 | — |
-| [T-0202](T-0202-mac-ci-pipeline.md) | CI 正式流水线：swift test + xcodebuild test + 打包产物 | ready | P0 | infra | T-0201 | — |
+| [T-0202](T-0202-mac-ci-pipeline.md) | CI 正式流水线：swift test + xcodebuild test + 打包产物 | in-progress | P0 | infra | T-0201 | — |
 | [T-0203](T-0203-mac-snapshot-pipeline.md) | 截图验证管线（快照测试 → artifact → 本地下载查看） | ready | P0 | DesignSystem, infra | T-0202 | — |
 | [T-0204](T-0204-birthday-core-projects-and-history.md) | BirthdayCore：工程模型 + 命令 / 撤销栈 + 草稿协议 | done | P0 | BirthdayCore | T-0201 | F-14 |
 | [T-0205](T-0205-media-import-and-storage.md) | MediaIO：Finder 选图、拖入与权限验收 | ready | P0 | MediaIO | T-0201, T-0207 | F-06 |

@@ -1,6 +1,22 @@
-name: macOS smoke
+name: macOS CI
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yml'
+      - 'tools/check_repo.py'
+      - '.gitignore'
+      - '.gitattributes'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '.github/workflows/ci.yml'
+      - 'tools/check_repo.py'
+      - '.gitignore'
+      - '.gitattributes'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +27,7 @@ defaults:
     shell: bash
 
 jobs:
-  macos-smoke:
+  macos:
     runs-on: macos-26
     timeout-minutes: 20
     steps:
@@ -49,6 +65,12 @@ jobs:
           xcodegen generate
           time xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Release \
             -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" build
+      - name: Test AppMac host
+        working-directory: app
+        run: |
+          xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Debug \
+            -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" \
+            -parallel-testing-enabled NO test
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -64,11 +86,14 @@ jobs:
           grep -F 'Signature=adhoc' "$output/signature.txt"
           ditto -c -k --sequesterRsrc --keepParent "$app" "$output/IOSPS.app.zip"
           unzip -Z1 "$output/IOSPS.app.zip" | grep -Fx 'IOSPS.app/Contents/MacOS/IOSPS'
+          archive_check="$RUNNER_TEMP/iosps-package-check"
+          ditto -x -k "$output/IOSPS.app.zip" "$archive_check"
+          codesign --verify --deep --strict --verbose=2 "$archive_check/IOSPS.app"
           (cd "$output" && shasum -a 256 IOSPS.app.zip > IOSPS.app.zip.sha256)
-      - name: Upload smoke artifacts
+      - name: Upload Mac build artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: iosps-macos-smoke
+          name: iosps-macos-build
           path: |
             ${{ runner.temp }}/iosps-artifacts/birthday-smoke.png
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt

@@ -23,3 +23,4 @@ Mac 版适合键鼠和大屏编辑，可按 ADR-0005 直接交付。iOS 优先�
 
 - 2026-11-20：用户确认按常见 M 系列 MacBook 做交付目标。首版仍构建 `arm64`，部署下限保持 macOS 14.0。选 MacBook Air M1、8 GB 做较低配置的性能参考。具体机型、内存和安装的系统版本由 T-0803 真机验收记录。[Apple M1 MacBook Air 技术规格](https://support.apple.com/en-ie/111883) · [Apple macOS Sonoma 兼容清单](https://support.apple.com/en-ie/105113)
 - 2026-11-20：用户重开 [T-0006](../../tasks/T-0006-compositor-reuse-spike.md) 做只读预评估。上游完整编辑器的要求为 macOS 26.0／Apple 芯片。当前 IOSPS 部署目标继续采用 macOS 14.0／arm64，迁移与提高下限待 [D-12](../../STATUS.md) 确认。[R04 源码证据](../research/R04-compositor-reuse.md)
+- 2026-11-20：用户确认目标机可用 macOS 26+，先在隔离分支验证 [T-0008 完整继承原型](../../tasks/T-0008-compositor-integrated-prototype.md)。原型使用 26.0／arm64，主线下限按原决策。

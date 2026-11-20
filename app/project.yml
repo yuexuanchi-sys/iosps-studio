@@ -28,8 +28,26 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
+  AppMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - Tests/AppMacTests
+    dependencies:
+      - target: AppMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.tests
+        GENERATE_INFOPLIST_FILE: "YES"
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
 schemes:
   AppMac:
     build:
       targets:
         AppMac: all
+        AppMacTests: [test]
+    test:
+      config: Debug
+      targets:
+        - AppMacTests

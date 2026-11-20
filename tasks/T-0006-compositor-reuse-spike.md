@@ -2,7 +2,7 @@
 id: T-0006
 title: Compositor 修图底座只读预评估
 milestone: M0
-status: review
+status: done
 priority: P0
 modules: docs
 features: F-07, F-08, F-13, F-14, F-21
@@ -49,3 +49,4 @@ updated: 2026-11-20
 - 2026-11-20：D-07 尚无 Apple 芯片及 macOS 26+ 的确认，当前部署基线为 14.0，按 T-0003 条件关闭。
 - 2026-11-20：用户要求优先评估 Compositor。T-0005 已到 `success` 并回读产物，重开本卡。用户确认前保留部署基线与现有代码，暂缓自研修图引擎。
 - 2026-11-20：完成源码和许可核对，汇总两条路线与四组原型验收，进入 `review` 等 D-12。自查通过：三项静态验收有证据；应用和 CI 配置无差异，未引入实现占位符、依赖或资源；研究索引、ADR 修订记录、STATUS 和 BOARD 已同步；`python tools/check_repo.py` 为 0 error。
+- 2026-11-20：用户确认目标机可用 macOS 26+，先验证完整继承原型，静态预评估收口。原型及运行门槛转由 [T-0008](T-0008-compositor-integrated-prototype.md) 实施。正式迁移和主线部署变更仍待确认。

@@ -3,14 +3,14 @@
 当前交付目标是 macOS。首次 macOS CI 成功，现优先评估以 Compositor 复用修图能力。
 
 - **最后更新**：2026-11-20
-- **当前阶段**：M0 首次上传与 macOS 冒烟完成，Compositor 预评估待选路线；M1 产品定义待验收，M2 工程基础已通过首次 CI
-- **当前任务**：[T-0006 Compositor 只读预评估](tasks/T-0006-compositor-reuse-spike.md)（`review`，待 D-12）
+- **当前阶段**：M0 首次上传与 macOS 冒烟完成，Compositor 选定完整继承原型；M1 产品定义待验收，M2 工程基础已通过首次 CI
+- **当前任务**：[T-0202 正式 macOS CI](tasks/T-0202-mac-ci-pipeline.md)（`in-progress`），之后优先取 [T-0008](tasks/T-0008-compositor-integrated-prototype.md)。
 - **执行方式**：按 [executor-prompt.md](docs/workflow/executor-prompt.md) 连续推进，WIP = 1
 
 ## 下一步
 
-1. **T-0006 / D-12**：[R04](docs/research/R04-compositor-reuse.md) 已核查 Compositor `4a17b264`。目标 Mac 可用 26+ 时优先验证完整继承，保留 14.0 时优先 IOSPS 定点复用。选定后立原型卡，验收 arm64／Swift 6、中文编辑与 PNG/JPEG、生日与回忆短片的素材连通、断网安装及运行。
-2. **T-0202 → T-0203**：以 [run 44775125352](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44775125352) 为依据推进常规 CI、构建产物和浅／深色及文字缩放快照。
+1. **T-0202 → T-0008**：常规 CI 用代码推送实测后，按 [R04](docs/research/R04-compositor-reuse.md) 的标准验证 Compositor 完整继承原型（macOS 26+／arm64）。主线 AppMac 仍按 14.0 构建。
+2. **T-0203**：推进浅／深色及文字缩放快照。
 3. **T-0207 → T-0205**：补齐 HEIC、视频、色彩与尺寸的运行验收，再接 Finder 选取、拖放和权限反馈。
 4. **T-0301**：接生日主页与日期逻辑；T-0302/T-0304 使用回忆清单与用户素材。
 5. **T-0101 / T-0102 / T-0103 / T-0104**：用户可同时验收 PRD、线框、视觉及命名，并按素材清单私下准备回忆包。D-02 确认后复核工期。
@@ -30,11 +30,11 @@
 | D-09 | 视觉方向、App 名称和图标 | DesignSystem 与交付外观 | T-0103 | ⚠️ 已按默认推进：暖色纸相册、拾光簿、叠放照片与星点 |
 | D-10 | 2 月 29 日生日在平年何时祝福 | 倒计时、年龄、全屏祝福 | T-0305 | ⚠️ 已按默认推进：2 月 28 日 |
 | D-11 | 短片首版帧率与时长 | 时间轴与导出 | T-0501 | ⚠️ 已按默认推进：30 fps 整数帧，最长 10 分钟 |
-| D-12 | Compositor 复用路线与首版部署目标 | 修图底座、目标 Mac 兼容性 | T-0006 / ADR-0001 / ADR-0003 | ⏳ 待确认目标 Mac 实际系统及是否接受 macOS 26.0，并选择完整继承或保留 IOSPS 定点复用 |
+| D-12 | Compositor 原型与首版部署目标 | 修图底座、目标 Mac 兼容性 | T-0008 / ADR-0001 / ADR-0003 | ✅ 用户于 2026-11-20 确认目标机可用 macOS 26+，先验证完整继承原型。正式迁移及提高主线部署下限仍待确认 |
 
 ## 阻塞
 
-- **修图路线**：T-0401 及后续自研修图代码暂缓，等待 D-12。现有代码和 macOS 14.0／arm64 基线继续保留。
+- **修图路线**：T-0401 及后续自研修图代码暂缓。先用隔离原型验证完整继承，正式迁移和主线部署下限按原型证据再确认。
 - **本地 L1**：当前机器无 `swift`，WinGet 别名无法启动。Windows 安装见 [T-0007](tasks/T-0007-windows-swift-toolchain.md)，L1 已在 macOS CI 验证。
 - **个人素材**：T-0104 的格式和清单已写好，用户将素材放进 `content/private/` 后只需确认目录与数量。T-0302/T-0304 的真实内容验收需素材。
 - **产品与目标机验收**：T-0101/T-0102/T-0103 在 review，安装与体验要在朋友目标 Mac 做 L4。

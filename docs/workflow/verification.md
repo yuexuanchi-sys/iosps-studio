@@ -29,6 +29,10 @@
 - 推代码之前：L0 + L1 先在本地跑通；一次推送尽量完成一个完整的切片，不要推一行改一行。
 - CI 失败：先完整读日志、定位根因再改（遵守 systematic-debugging 的做法），不要盲目重试。
 
+## 常规 macOS CI（T-0202）
+
+`.github/workflows/ci.yml` 对目标分支为 `main` 的 PR 和 `main` 上的应用、工作流与检查配置变更自动运行，支持 `gh workflow run ci.yml --ref main` 手动触发。AppMac 的 Debug 测试由 `xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Debug -destination 'platform=macOS' test` 运行，Release 构建与测试目录按配置分开。从成功 run 下载 `iosps-macos-build`，用 `Get-FileHash -Algorithm SHA256` 核对 ZIP 与随包校验记录。首次冒烟的历史产物名和 run 见 [T-0005](../../tasks/T-0005-ci-smoke-test.md)。
+
 ## 截图验证管线（T-0203 建立）
 
 1. 快照测试：对 `DesignSystem` 组件和关键页面，在固定尺寸下渲染成 PNG（例如 Mac 窗口 1280×800 pt）。
