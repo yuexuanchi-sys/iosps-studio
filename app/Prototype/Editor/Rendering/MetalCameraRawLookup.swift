@@ -10,8 +10,8 @@ nonisolated final class MetalCameraRawLookup: Sendable {
     private let device: MTLDevice
     private let queue: MTLCommandQueue
     private let pipeline: MTLComputePipelineState
-    /// Buffer contents are accessed only while holding the renderer's mutex.
-    private nonisolated struct Buffers: Sendable {
+    /// The mutex owns these buffers. Every GPU command finishes before the lock is released.
+    private nonisolated struct Buffers: @unchecked Sendable {
         let pixels: MTLBuffer
         let uncertain: MTLBuffer
         let lookup: MTLBuffer
