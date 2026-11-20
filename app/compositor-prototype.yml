@@ -31,7 +31,6 @@ targets:
         ENABLE_APP_SANDBOX: "YES"
         ENABLE_USER_SELECTED_FILES: readwrite
         CODE_SIGN_ENTITLEMENTS: Prototype/config/prototype.entitlements
-        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
         SWIFT_OBJC_BRIDGING_HEADER: Prototype/Editor/Compositor-Bridging-Header.h
   CompositorPrototypeTests:
     type: bundle.unit-test
