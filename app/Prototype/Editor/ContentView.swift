@@ -411,8 +411,8 @@ extension View {
 /// and applying the step go through here, refreshed on every redraw.
 @MainActor final class ArrowStepper {
     var editing = false
-    var value: () -> Double = { 0 }
-    var change: (Double) -> Void = { _ in }
+    var value: @MainActor () -> Double = { 0 }
+    var change: @MainActor (Double) -> Void = { _ in }
     private var monitor: Any?
 
     /// Takes Up and Down while the field holds focus: one step, or ten with Shift.
@@ -442,8 +442,8 @@ extension View {
 /// arrow keys for its insertion point, so they are caught while it holds focus.
 private struct ArrowStepping: ViewModifier {
     let step: Double
-    let value: () -> Double
-    let change: (Double) -> Void
+    let value: @MainActor () -> Double
+    let change: @MainActor (Double) -> Void
     @FocusState private var focused: Bool
     @State private var stepper = ArrowStepper()
     func body(content: Content) -> some View {
@@ -465,12 +465,15 @@ private struct ArrowStepping: ViewModifier {
 
 extension View {
     /// Up and Down step this field's value; each field's own binding keeps it in range.
-    func arrowSteps(_ step: Double = 1, value: @escaping () -> Double, change: @escaping (Double) -> Void) -> some View {
+    @MainActor
+    func arrowSteps(_ step: Double = 1, value: @escaping @MainActor () -> Double,
+                    change: @escaping @MainActor (Double) -> Void) -> some View {
         modifier(ArrowStepping(step: step, value: value, change: change))
     }
     /// The same, for a field that already owns its focus: it says when it is being edited.
+    @MainActor
     func arrowSteps(_ step: Double = 1, editing: Bool, stepper: ArrowStepper,
-                    value: @escaping () -> Double, change: @escaping (Double) -> Void) -> some View {
+                    value: @escaping @MainActor () -> Double, change: @escaping @MainActor (Double) -> Void) -> some View {
         onAppear { stepper.value = value; stepper.change = change }
             .onChange(of: value()) { _, _ in stepper.value = value; stepper.change = change }
             .onChange(of: editing) { _, active in
