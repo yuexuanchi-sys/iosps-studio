@@ -1,0 +1,12 @@
+--- Composicion.swift
++++ Composicion.swift
+@@ -403 +403 @@
+-    var sourcePixelBufferAttributes: [String: Any]? {
++    var sourcePixelBufferAttributes: [String: any Sendable]? {
+@@ -407 +407 @@
+-    var requiredPixelBufferAttributesForRenderContext: [String: Any] {
++    var requiredPixelBufferAttributesForRenderContext: [String: any Sendable] {
+@@ -958 +958,2 @@
+-    private static var registro: [MTAudioProcessingTap: TapDePaneo] = [:]
++    // All registry reads and writes use cerrojo, including AVFoundation callbacks.
++    private nonisolated(unsafe) static var registro: [MTAudioProcessingTap: TapDePaneo] = [:]
