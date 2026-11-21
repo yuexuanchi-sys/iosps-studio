@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct CompositorApp: App {
     @NSApplicationDelegateAdaptor(CompositorApplicationDelegate.self) private var delegate
+    @AppStorage("giftLargeText") private var largeText = false
 
     var body: some Scene {
         Window("拾光簿", id: "editor") {
@@ -12,7 +13,7 @@ struct CompositorApp: App {
         .defaultSize(width: 1120, height: 740)
         .handlesExternalEvents(matching: [])
         .commands {
-            GiftCommands(workspace: delegate.workspace, navigation: delegate.giftNavigation)
+            GiftCommands(workspace: delegate.workspace, navigation: delegate.giftNavigation, largeText: $largeText)
         }
     }
 
@@ -25,22 +26,20 @@ struct CompositorApp: App {
         }
         if let variant {
             if variant == "large" {
-                workspaceView
-                    .preferredColorScheme(.light)
-                    .dynamicTypeSize(.accessibility1)
+                workspaceView(largeText: true).preferredColorScheme(.light)
             } else {
-                workspaceView.preferredColorScheme(variant == "dark" ? .dark : .light)
+                workspaceView(largeText: false).preferredColorScheme(variant == "dark" ? .dark : .light)
             }
         } else {
-            workspaceView
+            workspaceView(largeText: largeText)
         }
         #else
-        workspaceView
+        workspaceView(largeText: largeText)
         #endif
     }
 
-    private var workspaceView: some View {
-        GiftWorkspace(workspace: delegate.workspace, navigation: delegate.giftNavigation)
+    private func workspaceView(largeText: Bool) -> some View {
+        GiftWorkspace(workspace: delegate.workspace, navigation: delegate.giftNavigation, largeText: largeText)
             .modifier(GiftWindowCommands(delegate: delegate))
     }
 }
@@ -59,6 +58,7 @@ private struct GiftWindowCommands: ViewModifier {
 private struct GiftCommands: Commands {
     let workspace: ProjectWorkspace
     let navigation: GiftNavigation
+    @Binding var largeText: Bool
     private var session: EditorSession { workspace.current.session }
     private var controller: ProjectController { workspace.current.controller }
     private var canWrite: Bool { session.document != nil && workspace.canSwitch && session.cropRect == nil }
@@ -123,6 +123,8 @@ private struct GiftCommands: Commands {
             Button("生日") { navigation.page = .birthday }.keyboardShortcut("1")
             Button("回忆") { navigation.page = .memories }.keyboardShortcut("2")
             Button("修图") { navigation.page = .editor }.keyboardShortcut("3")
+            Divider()
+            Toggle("放大界面文字", isOn: $largeText)
         }
         CommandMenu("照片") {
             Button("二比一裁剪") { session.beginGiftCrop("2:1") }

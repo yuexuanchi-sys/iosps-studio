@@ -4,6 +4,7 @@ import SwiftUI
 struct GiftPhotoEditor: View {
     let workspace: ProjectWorkspace
     let navigation: GiftNavigation
+    let largeText: Bool
     private var tab: ProjectTab { workspace.current }
     private var session: EditorSession { tab.session }
     private var working: Bool { workspace.isManaging || session.showsBusy || session.isImporting }
@@ -21,7 +22,9 @@ struct GiftPhotoEditor: View {
                     Divider()
                     ScrollView {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("修图").font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                            Text("修图")
+                                .font(.system(size: largeText ? 27 : 20, weight: .semibold))
+                                .accessibilityAddTraits(.isHeader)
                             if session.filterEdit != nil || session.hueSaturation != nil {
                                 adjustment
                             } else {
@@ -31,7 +34,7 @@ struct GiftPhotoEditor: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(16)
                     }
-                    .frame(width: 246)
+                    .frame(width: largeText ? 284 : 246)
                     .background(.background)
                     .disabled(working)
                 }
@@ -97,7 +100,7 @@ struct GiftPhotoEditor: View {
 
     private var tools: some View {
         Group {
-            Text("裁剪").font(.headline)
+            Text("裁剪").font(.system(size: largeText ? 20 : 15, weight: .semibold))
             HStack {
                 Button("1:1") { session.beginGiftCrop("1:1") }
                     .accessibilityLabel("正方形裁剪")
@@ -123,7 +126,7 @@ struct GiftPhotoEditor: View {
                 .disabled(!session.canEditLayers)
                 .accessibilityIdentifier("gift-rotate")
                 Divider()
-                Text("调色").font(.headline)
+                Text("调色").font(.system(size: largeText ? 20 : 15, weight: .semibold))
                 Button("曝光…") { session.beginFilter(.exposure) }
                     .disabled(!session.canAdjustColors)
                     .accessibilityIdentifier("gift-exposure")

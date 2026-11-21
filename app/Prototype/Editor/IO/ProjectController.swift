@@ -48,7 +48,11 @@ final class ProjectController {
     func exportGiftPhoto(_ format: ExportFormat) async {
         guard (format == .png || format == .jpeg), session.document != nil, begin() else { return }
         defer { session.isProjectBusy = false }
-        guard let snapshot = session.projectSnapshot(), let url = await savePanel(for: format) else { return }
+        guard let snapshot = session.projectSnapshot(), let url = await savePanel(for: format, editedCopy: true) else { return }
+        if url.resolvingSymlinksInPath().standardizedFileURL == session.sourceImageURL?.resolvingSymlinksInPath().standardizedFileURL {
+            await showError(String(localized: "请为导出照片另选文件名"), error: CocoaError(.fileWriteFileExists))
+            return
+        }
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         do {
@@ -222,13 +226,17 @@ final class ProjectController {
     }
 
     /// Where an export goes: named after the project or the image it began as, and for an image, in its folder.
-    private func savePanel(for format: ExportFormat) async -> URL? {
+    private func savePanel(for format: ExportFormat, editedCopy: Bool = false) async -> URL? {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [format.type]
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
         panel.title = String(localized: "导出 \(format.rawValue)")
-        panel.nameFieldStringValue = Self.exportName(projectURL: session.projectURL, source: session.sourceImageURL, format: format)
+        let name = Self.exportName(projectURL: session.projectURL, source: session.sourceImageURL, format: format)
+        let file = URL(fileURLWithPath: name)
+        panel.nameFieldStringValue = editedCopy
+            ? file.deletingPathExtension().lastPathComponent + "-edited." + file.pathExtension
+            : name
         if session.projectURL == nil, let source = session.sourceImageURL {
             panel.directoryURL = source.deletingLastPathComponent()
         }

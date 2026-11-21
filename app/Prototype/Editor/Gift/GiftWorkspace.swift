@@ -74,6 +74,7 @@ final class GiftNavigation {
 struct GiftWorkspace: View {
     let workspace: ProjectWorkspace
     let navigation: GiftNavigation
+    let largeText: Bool
     @Environment(\.colorScheme) private var colorScheme
 
     private var paper: Color {
@@ -88,7 +89,7 @@ struct GiftWorkspace: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Text("拾光簿")
-                    .font(.headline)
+                    .font(.system(size: largeText ? 20 : 15, weight: .semibold))
                     .foregroundStyle(accent)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 12)
@@ -108,25 +109,30 @@ struct GiftWorkspace: View {
             .padding(.vertical, 14)
             Divider()
             switch navigation.page {
-            case .birthday, .memories:
-                ScrollView {
-                    Group {
-                        if navigation.page == .birthday {
-                            birthday
-                        } else {
-                            memories
-                        }
+            case .birthday:
+                GeometryReader { viewport in
+                    ScrollView {
+                        birthday
+                            .frame(maxWidth: 1000, alignment: .leading)
+                            .padding(32)
+                            .frame(maxWidth: .infinity, minHeight: viewport.size.height)
                     }
-                    .frame(maxWidth: 1000, alignment: .leading)
-                    .padding(32)
-                    .frame(maxWidth: .infinity)
+                }
+            case .memories:
+                ScrollView {
+                    memories
+                        .frame(maxWidth: 1000, alignment: .leading)
+                        .padding(32)
+                        .frame(maxWidth: .infinity)
                 }
             case .editor:
-                GiftPhotoEditor(workspace: workspace, navigation: navigation)
+                GiftPhotoEditor(workspace: workspace, navigation: navigation, largeText: largeText)
                     .id(workspace.current.id)
             }
         }
         .frame(minWidth: 760, minHeight: 490)
+        .font(.system(size: largeText ? 18 : 14))
+        .controlSize(largeText ? .large : .regular)
         .background(paper)
         .background {
             ProjectWindowBridge(controller: workspace.current.controller).frame(width: 0, height: 0)
@@ -153,11 +159,11 @@ struct GiftWorkspace: View {
     private var birthdayMessage: some View {
         VStack(alignment: .leading, spacing: 18) {
             Text("生日快乐")
-                .font(.largeTitle.weight(.heavy))
+                .font(.system(size: largeText ? 48 : 36, weight: .heavy))
                 .accessibilityAddTraits(.isHeader)
             if let manifest = navigation.sample?.manifest, let date = manifest.birthday {
                 Text("生日 · \(date.month) 月 \(date.day) 日")
-                    .font(.title3.weight(.medium))
+                    .font(.system(size: largeText ? 26 : 19, weight: .medium))
                     .foregroundStyle(accent)
                 if let today = try? LocalDay(containing: .now, timeZone: .current),
                    let count = GiftCalendar.metrics(on: today, birthday: date, metOn: manifest.metOn).daysUntilBirthday {
@@ -184,18 +190,22 @@ struct GiftWorkspace: View {
 
     private var memories: some View {
         VStack(alignment: .leading, spacing: 22) {
-            Text("回忆").font(.largeTitle.weight(.heavy)).accessibilityAddTraits(.isHeader)
+            Text("回忆")
+                .font(.system(size: largeText ? 48 : 36, weight: .heavy))
+                .accessibilityAddTraits(.isHeader)
             if let sample = navigation.sample, !sample.manifest.memories.isEmpty {
                 ForEach(sample.manifest.memories, id: \.id) { memory in
                     VStack(alignment: .leading, spacing: 10) {
                         Text("\(memory.date.year) 年 \(memory.date.month) 月 \(memory.date.day) 日")
                             .font(.callout)
                             .foregroundStyle(accent)
-                        Text(memory.title).font(.title2.weight(.semibold)).accessibilityAddTraits(.isHeader)
+                        Text(memory.title)
+                            .font(.system(size: largeText ? 27 : 20, weight: .semibold))
+                            .accessibilityAddTraits(.isHeader)
                         if let note = memory.note {
                             Text(note).foregroundStyle(.secondary)
                         }
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), alignment: .top)], spacing: 16) {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .top), count: 2), spacing: 16) {
                             ForEach(Array(memory.photos.enumerated()), id: \.offset) { index, path in
                                 let url = sample.url(for: path)
                                 VStack(alignment: .leading, spacing: 10) {

@@ -8,10 +8,14 @@ final class GiftPrototypeUITests: XCTestCase {
     func testChineseEntryAndAppearanceVariants() {
         continueAfterFailure = false
         let app = XCUIApplication()
+        var lightTitleHeight: CGFloat = 0
         for variant in ["light", "dark", "large"] {
             app.launchArguments = ["--gift-ui-appearance", variant]
             app.launch()
-            XCTAssertTrue(app.staticTexts["生日快乐"].waitForExistence(timeout: 10))
+            let title = app.staticTexts["生日快乐"]
+            XCTAssertTrue(title.waitForExistence(timeout: 10))
+            if variant == "light" { lightTitleHeight = title.frame.height }
+            if variant == "large" { XCTAssertGreaterThan(title.frame.height, lightTitleHeight) }
             capture(app, name: "\(variant)-birthday")
             app.typeKey("2", modifierFlags: .command)
             XCTAssertTrue(app.staticTexts["湖畔散步"].waitForExistence(timeout: 5))
