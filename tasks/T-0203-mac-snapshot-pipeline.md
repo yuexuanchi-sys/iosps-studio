@@ -32,3 +32,4 @@ updated: 2026-11-21
 
 ## 进度日志
 - 2026-11-20：从看板滚动细化。
+- 2026-11-21：[run 44921911658](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44921911658)（`4eaa479df6431c07497c701552b57d7b0ece6a2e`）保留 720×480 冒烟输出，并按预期在新增的 `--variants` 路径报 `SnapshotError.missingOutputPath`。日志 `artifacts/snapshots/44921911658/failed.log`。
