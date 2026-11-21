@@ -11,6 +11,7 @@
 - **短片与 ZIP**：T-0010 源码 `4bbda3e` 的 [run 44921126380](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44921126380) 成功。AVFoundation 与本地 PyAV 取证 3.000 秒、30 fps、90 帧、无音轨。MP4 与 ZIP 分别在 `artifacts/prototype/44921126380/retouched-memory.mp4` 和 `artifacts/prototype/44921126380/iosps-compositor-prototype/`。ZIP 为 arm64、26.0、ad-hoc，解包签名与精确权限核验通过，SHA-256 见任务卡。
 - **目标机阻塞**：T-0010 的 AC2 余断网首开、修图、短片与重开恢复，AC3 余参考机和目标机的 12 MP 数据。CI 宿主导入 0.185 秒、保存 0.354 秒、成片 0.853 秒、重开 0.254 秒，峰值约 498.6 MiB。验收用 `artifacts/prototype/acceptance/landscape-12mp.jpg` 与 [断网清单](../docs/workflow/prototype-offline-acceptance.md)。T-0009 等用户界面评审。
 - **独立主线**：T-0203 快照代码 `5de11ac`，[run 44922099330](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922099330) 的三种实际 PNG 已查看。快进主线 `ed263b5` 后 [run 44922448800](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922448800) 成功。T-0207 的五种合成格式回归在 `t-0207-media-library` 的 `e402247`、[run 44922628475](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922628475) 通过，48 项 SwiftPM 用例及主线 Release 和宿主测试成功。主线部署目标 14.0／arm64。
+- **主线合入回归**：`main` 的 `524f39c` 自动 [run 44922945754](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922945754) 为 success。收尾 `python tools/check_repo.py` 为 0 error，两个既有 warning 是 T-0102/T-0103 等 T-0101。
 - **接续**：在 `D:\IOSPS` 运行 `Get-Content -Raw -Encoding UTF8 tasks/T-0205-media-import-and-storage.md`，按实施要点接 Finder 选取和拖放。收到真机和界面反馈时按 T-0009/T-0010 逐项记录。正式迁移仍等 D-12 用户确认。
 
 ---
