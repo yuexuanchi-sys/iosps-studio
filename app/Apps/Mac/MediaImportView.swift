@@ -19,6 +19,7 @@ struct MediaImportView: View {
                 Button("从 Finder 选择…") { showsPicker = true }
                     .keyboardShortcut("i", modifiers: [.command, .shift])
                     .disabled(session.isImporting)
+                    .accessibilityIdentifier("media-finder-picker")
             }
             dropArea
             if pickerFailed {

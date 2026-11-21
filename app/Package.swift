@@ -23,8 +23,8 @@ products.append(.library(name: "MediaIO", targets: ["MediaIO"]))
 targets.append(.target(name: "MediaIO", dependencies: ["BirthdayCore"]))
 targets.append(.testTarget(name: "MediaIOTests", dependencies: ["BirthdayCore", "MediaIO"]))
 products.append(.library(name: "DesignSystem", targets: ["DesignSystem"]))
-targets.append(.target(name: "DesignSystem", resources: [.process("Resources")]))
-targets.append(.executableTarget(name: "BirthdaySmokeSnapshot", dependencies: ["DesignSystem"]))
+targets.append(.target(name: "DesignSystem", dependencies: ["GiftKit"], resources: [.process("Resources")]))
+targets.append(.executableTarget(name: "BirthdaySmokeSnapshot", dependencies: ["DesignSystem", "GiftKit"]))
 #endif
 
 let package = Package(

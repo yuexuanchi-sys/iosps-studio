@@ -2,6 +2,7 @@ import AppKit
 import CoreGraphics
 import DesignSystem
 import Foundation
+import GiftKit
 import SwiftUI
 
 private enum SnapshotError: Error {
@@ -37,7 +38,16 @@ struct BirthdaySmokeSnapshot {
 
     @MainActor
     private static func render(to output: URL, size: CGSize, scheme: ColorScheme, enlargedText: Bool) throws {
-        let view = BirthdayGreetingView(enlargedText: enlargedText)
+        let birthday = try LocalDay(isoDate: "2000-02-29")
+        let metOn = try LocalDay(isoDate: "2025-02-27")
+        let today = try LocalDay(isoDate: "2025-02-28")
+        let view = BirthdayGreetingView(
+            enlargedText: enlargedText,
+            wishes: "愿这一年有更多好天气，也有更多值得记住的小事。",
+            birthday: birthday,
+            metrics: GiftCalendar.metrics(on: today, birthday: birthday, metOn: metOn),
+            onEasterEgg: {}
+        )
             .frame(width: size.width, height: size.height)
             .environment(\.colorScheme, scheme)
         guard let appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua) else {

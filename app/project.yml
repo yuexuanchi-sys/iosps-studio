@@ -21,6 +21,8 @@ targets:
         product: DesignSystem
       - package: IOSPSModules
         product: MediaIO
+      - package: IOSPSModules
+        product: GiftKit
     settings:
       base:
         PRODUCT_NAME: IOSPS
@@ -45,13 +47,29 @@ targets:
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/IOSPS.app/Contents/MacOS/IOSPS
         CODE_SIGN_STYLE: Manual
         CODE_SIGN_IDENTITY: "-"
+  AppMacUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - Tests/AppMacUITests
+    dependencies:
+      - target: AppMac
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_TARGET_NAME: AppMac
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "-"
 schemes:
   AppMac:
     build:
       targets:
         AppMac: all
         AppMacTests: [test]
+        AppMacUITests: [test]
     test:
       config: Debug
       targets:
         - AppMacTests
+        - AppMacUITests
