@@ -53,6 +53,7 @@
 - **依赖**：BirthdayCore、TimelineKit、TemplateKit、ImageEngine（共用滤镜）；AVFoundation、Core Image。
 - **验证**：L2（CI 上导出短视频，检查时长、分辨率、帧数，抽帧截图）。
 - **任务**：T-0502 ~ T-0505、T-0602 ~ T-0606
+- **隔离原型**：T-0010 以 TemplateKit 解析静帧模板，通过 TimelineKit 的 30 fps 帧网格渲染一段引用 MediaIO `MediaID` 的无声 H.264。AppMac 负责将现有照片工程导出为原像素 PNG 并登记，本例只在原型分支验收。
 
 ### MediaIO
 - **状态**：active（磁盘草稿、素材发布和 JPEG 方向经首次 CI 验证；全格式、色彩与 Finder 集成待验收）
@@ -78,6 +79,7 @@
 - **依赖**：所有下层模块。
 - **验证**：L2 构建 + L3 UI 测试截图 + L4 真机验收。
 - **任务**：T-0201、T-03xx、T-0705、T-08xx
+- **隔离原型**：T-0009 的 SwiftUI 礼物界面调用 GiftKit、Compositor 画布和工程控制器。App 持有工作区，生日和回忆页面切换时保留编辑会话。照片工程由 Compositor 的 `.comp` 文件包管理。
 
 ## 资源：Assets
 - **状态**：planned

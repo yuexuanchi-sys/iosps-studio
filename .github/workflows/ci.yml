@@ -80,6 +80,13 @@ jobs:
           sips -g pixelWidth -g pixelHeight "$output/birthday-smoke.png" | tee "$output/snapshot-size.txt"
           grep -F 'pixelWidth: 720' "$output/snapshot-size.txt"
           grep -F 'pixelHeight: 480' "$output/snapshot-size.txt"
+          swift run --package-path app BirthdaySmokeSnapshot --variants "$output/snapshots"
+          for variant in light dark large; do
+            sips -g pixelWidth -g pixelHeight "$output/snapshots/birthday-$variant.png" | tee -a "$output/snapshot-size.txt"
+          done
+          test "$(grep -c 'pixelWidth: 1280' "$output/snapshot-size.txt")" = 3
+          test "$(grep -c 'pixelHeight: 800' "$output/snapshot-size.txt")" = 3
+          test "$(shasum -a 256 "$output"/snapshots/*.png | awk '{ print $1 }' | sort -u | wc -l | tr -d ' ')" = 3
           test "$(lipo -archs "$app/Contents/MacOS/IOSPS")" = arm64
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dv --verbose=4 "$app" 2>&1 | tee "$output/signature.txt"
@@ -96,6 +103,7 @@ jobs:
           name: iosps-macos-build
           path: |
             ${{ runner.temp }}/iosps-artifacts/birthday-smoke.png
+            ${{ runner.temp }}/iosps-artifacts/snapshots/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip
