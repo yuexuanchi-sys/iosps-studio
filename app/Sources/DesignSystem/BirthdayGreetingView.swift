@@ -30,42 +30,49 @@ public struct BirthdayGreetingView: View {
     }
 
     public var body: some View {
-        GeometryReader { proxy in
+        ViewThatFits(in: .vertical) {
+            greetingContent
             ScrollView {
-                VStack(spacing: 16) {
-                    Text("生日快乐", bundle: .module)
-                        .font(enlargedText ? .system(size: 44, weight: .semibold) : .largeTitle.weight(.semibold))
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("birthday-title")
-                    if let wishes, !wishes.isEmpty {
-                        Text(verbatim: wishes)
-                            .font(.title3)
-                    }
-                    dateMetrics
-                    if let onEasterEgg {
-                        Button(action: onEasterEgg) {
-                            Label {
-                                Text("打开彩蛋", bundle: .module)
-                            } icon: {
-                                Image(systemName: "heart")
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityIdentifier("birthday-easter-egg")
-                    }
-                    if configurationFailed {
-                        Text("生日素材读取失败，可从「生日」菜单重试。", bundle: .module)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 560)
-                .padding(24)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
+                greetingContent
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .frame(minWidth: 360, minHeight: 240)
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+
+    private var greetingContent: some View {
+        VStack(spacing: 16) {
+            Text("生日快乐", bundle: .module)
+                .font(enlargedText ? .system(size: 44, weight: .semibold) : .largeTitle.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("birthday-title")
+            if let wishes, !wishes.isEmpty {
+                Text(verbatim: wishes)
+                    .font(.title3)
+            }
+            dateMetrics
+            if let onEasterEgg {
+                Button(action: onEasterEgg) {
+                    Label {
+                        Text("打开彩蛋", bundle: .module)
+                    } icon: {
+                        Image(systemName: "heart")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("birthday-easter-egg")
+            }
+            if configurationFailed {
+                Text("生日素材读取失败，可从「生日」菜单重试。", bundle: .module)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: 560)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(24)
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
