@@ -34,7 +34,7 @@
 |---|---|---|---|---|---|---|
 | [T-0201](T-0201-mac-project-scaffold.md) | 多模块工程骨架（Package.swift + XcodeGen project.yml + Mac 祝福首屏 + L1 import 检查） | done | P0 | 全部 | T-0003 | — |
 | [T-0202](T-0202-mac-ci-pipeline.md) | CI 正式流水线：swift test + xcodebuild test + 打包产物 | done | P0 | infra | T-0201 | — |
-| [T-0203](T-0203-mac-snapshot-pipeline.md) | 截图验证管线（快照测试 → artifact → 本地下载查看） | in-progress | P0 | DesignSystem, infra | T-0202 | — |
+| [T-0203](T-0203-mac-snapshot-pipeline.md) | 截图验证管线（快照测试 → artifact → 本地下载查看） | done | P0 | DesignSystem, infra | T-0202 | — |
 | [T-0204](T-0204-birthday-core-projects-and-history.md) | BirthdayCore：工程模型 + 命令 / 撤销栈 + 草稿协议 | done | P0 | BirthdayCore | T-0201 | F-14 |
 | [T-0205](T-0205-media-import-and-storage.md) | MediaIO：Finder 选图、拖入与权限验收 | ready | P0 | MediaIO | T-0201, T-0207 | F-06 |
 | [T-0206](T-0206-file-draft-store.md) | MediaIO：草稿原子替换与恢复 | done | P0 | MediaIO | T-0204 | F-14 |

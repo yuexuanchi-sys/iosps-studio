@@ -2,7 +2,7 @@
 id: T-0203
 title: macOS 快照验证管线
 milestone: M2
-status: in-progress
+status: done
 priority: P0
 modules: DesignSystem, infra
 features: none
@@ -21,8 +21,8 @@ updated: 2026-11-21
 - [验证矩阵](../docs/workflow/verification.md)、[易用性原则](../docs/product/ux-principles.md)、[T-0005](T-0005-ci-smoke-test.md)。
 
 ## 验收标准
-- [ ] AC1：复用实测成功的冒烟快照入口，用虚构数据分别渲染浅色、深色和放大字号。
-- [ ] AC2：CI 上传实际 PNG，下载到 artifacts/ 后逐图检查焦点、对比度、文本和布局，给出 run 与文件路径。
+- [x] AC1：[run 44922099330](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922099330)，SHA `5de11ac561dac4085f54a0813d11da1972f0ca05`，`swift run --package-path app BirthdaySmokeSnapshot --variants "$RUNNER_TEMP/iosps-artifacts/snapshots"` 输出三张 1280×800 PNG，720×480 冒烟图继续生成。
+- [x] AC2：同一 run 的 `iosps-macos-build` 已下载至 `artifacts/snapshots/44922099330/`。逐图查看浅色、深色和放大组，标题居中、对比清晰，放大标题的高对比像素高度从 24 增至 39；当前首屏只有静态标题，无焦点控件。原图在 `snapshots/`，合看图为 `review-sheet.png`。
 
 ## 实施要点
 
@@ -33,3 +33,4 @@ updated: 2026-11-21
 ## 进度日志
 - 2026-11-20：从看板滚动细化。
 - 2026-11-21：[run 44921911658](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44921911658)（`4eaa479df6431c07497c701552b57d7b0ece6a2e`）保留 720×480 冒烟输出，并按预期在新增的 `--variants` 路径报 `SnapshotError.missingOutputPath`。日志 `artifacts/snapshots/44921911658/failed.log`。
+- 2026-11-21：[run 44922099330](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922099330) 为 success。自查通过：L0 0 error，原主线 SwiftPM 和宿主测试通过，下载产物核对 ZIP CRC、SHA-256 和 macOS 14.0，三张快照验收完成。无新增依赖或素材。
