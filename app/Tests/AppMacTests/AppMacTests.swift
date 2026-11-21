@@ -39,10 +39,11 @@ final class AppMacTests: XCTestCase {
         await task.value
 
         XCTAssertEqual(session.rows.map(\.filename), batch.map(\.lastPathComponent))
-        XCTAssertEqual(session.rows.compactMap { row in
+        let errors: [MediaImportError] = session.rows.compactMap { row in
             if case .failure(let error) = row.result { return error }
             return nil
-        }, [.unsupportedFormat, .unreadableMedia, .unreadableFile])
+        }
+        XCTAssertEqual(errors, [.unsupportedFormat, .unreadableMedia, .unreadableFile])
         let imported = session.rows.compactMap { try? $0.result.get() }
         XCTAssertEqual(imported.count, originals.count)
         XCTAssertEqual(Set(try FileManager.default.contentsOfDirectory(atPath: root.path)),
