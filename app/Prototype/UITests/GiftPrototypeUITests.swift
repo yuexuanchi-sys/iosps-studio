@@ -172,7 +172,7 @@ final class GiftPrototypeUITests: XCTestCase {
         XCTAssertTrue(slider.waitForExistence(timeout: 5))
         slider.adjust(toNormalizedSliderPosition: position)
         XCTAssertEqual(slider.normalizedSliderPosition, position, accuracy: 0.05)
-        app.typeKey(.return, modifierFlags: [])
+        app.typeKey(.return, modifierFlags: .command)
         XCTAssertTrue(app.buttons["gift-rotate"].waitForExistence(timeout: 12))
     }
 

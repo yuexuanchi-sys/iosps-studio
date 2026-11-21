@@ -179,13 +179,9 @@ struct GiftPhotoEditor: View {
                 }
                 .keyboardShortcut(.cancelAction)
                 Button("应用调色") {
-                    Task {
-                        if session.hueSaturation != nil { await session.commitHueSaturation() }
-                        else { await session.commitFilter() }
-                    }
+                    Task { await session.applyGiftAdjustment() }
                 }
                 .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
                 .accessibilityIdentifier("gift-apply-color")
             }
         }
@@ -217,6 +213,11 @@ struct GiftPhotoEditor: View {
 }
 
 extension EditorSession {
+    func applyGiftAdjustment() async {
+        if hueSaturation != nil { await commitHueSaturation() }
+        else { await commitFilter() }
+    }
+
     func beginGiftCrop(_ choice: String) {
         guard let document, let ratio = CropGeometry.ratio(choice), canStartProjectOperation else { return }
         selectTool(.crop)

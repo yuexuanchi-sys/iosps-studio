@@ -56,3 +56,4 @@
 ## 变更记录
 - 2026-11-20：根据 R01 §5.2 / §5.5 建立初版。
 - 2026-11-20：按 macOS PRD v1.0 统一平台和交付入口，保留 P0 全量，基础视频剪辑作为 P1 更新。
+- 2026-11-21：隔离原型的生日首屏、合成回忆和修图入口见 [T-0009](../../tasks/T-0009-compositor-prototype-gift-interface.md)，短片和离线交付的验收见 [T-0010](../../tasks/T-0010-compositor-prototype-offline-movie.md)。

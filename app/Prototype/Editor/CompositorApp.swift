@@ -119,6 +119,12 @@ private struct GiftCommands: Commands {
             .keyboardShortcut("z", modifiers: [.command, .shift])
             .disabled(!editorVisible || !session.canRedo)
         }
+        CommandGroup(after: .undoRedo) {
+            Button("应用调色") { Task { await session.applyGiftAdjustment() } }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(!editorVisible || !session.canStartProjectOperation ||
+                          (session.filterEdit == nil && session.hueSaturation == nil))
+        }
         CommandMenu("前往") {
             Button("生日") { navigation.page = .birthday }.keyboardShortcut("1")
             Button("回忆") { navigation.page = .memories }.keyboardShortcut("2")
