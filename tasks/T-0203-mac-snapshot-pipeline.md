@@ -34,3 +34,4 @@ updated: 2026-11-21
 - 2026-11-20：从看板滚动细化。
 - 2026-11-21：[run 44921911658](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44921911658)（`4eaa479df6431c07497c701552b57d7b0ece6a2e`）保留 720×480 冒烟输出，并按预期在新增的 `--variants` 路径报 `SnapshotError.missingOutputPath`。日志 `artifacts/snapshots/44921911658/failed.log`。
 - 2026-11-21：[run 44922099330](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922099330) 为 success。自查通过：L0 0 error，原主线 SwiftPM 和宿主测试通过，下载产物核对 ZIP CRC、SHA-256 和 macOS 14.0，三张快照验收完成。无新增依赖或素材。
+- 2026-11-21：在 `main` 快进到 `ed263b549200e28288aa06c56647981af6da857d`，自动 [run 44922448800](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922448800) 终态 success。

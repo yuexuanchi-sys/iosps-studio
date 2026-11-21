@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-11-21 · 拾光簿原型、离线验收候选包与主线回归
+
+- **原型状态**：`t-0008-compositor-prototype` 在 `artifacts/worktrees/t-0008-compositor-prototype`。T-0009 在 review。源码 `3740195` 的 [run 44920382778](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44920382778) 通过三页导航、校验实际放大字号及完整文件编辑。已查看 `artifacts/prototype/44920382778/review-sheet.png`。T-0008 的原产物仍在 `artifacts/prototype/44784457809/`。
+- **短片与 ZIP**：T-0010 源码 `4bbda3e` 的 [run 44921126380](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44921126380) 成功。AVFoundation 与本地 PyAV 取证 3.000 秒、30 fps、90 帧、无音轨。MP4 与 ZIP 分别在 `artifacts/prototype/44921126380/retouched-memory.mp4` 和 `artifacts/prototype/44921126380/iosps-compositor-prototype/`。ZIP 为 arm64、26.0、ad-hoc，解包签名与精确权限核验通过，SHA-256 见任务卡。
+- **目标机阻塞**：T-0010 的 AC2 余断网首开、修图、短片与重开恢复，AC3 余参考机和目标机的 12 MP 数据。CI 宿主导入 0.185 秒、保存 0.354 秒、成片 0.853 秒、重开 0.254 秒，峰值约 498.6 MiB。验收用 `artifacts/prototype/acceptance/landscape-12mp.jpg` 与 [断网清单](../docs/workflow/prototype-offline-acceptance.md)。T-0009 等用户界面评审。
+- **独立主线**：T-0203 快照代码 `5de11ac`，[run 44922099330](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922099330) 的三种实际 PNG 已查看。快进主线 `ed263b5` 后 [run 44922448800](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922448800) 成功。T-0207 的五种合成格式回归在 `t-0207-media-library` 的 `e402247`、[run 44922628475](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44922628475) 通过，48 项 SwiftPM 用例及主线 Release 和宿主测试成功。主线部署目标 14.0／arm64。
+- **接续**：在 `D:\IOSPS` 运行 `Get-Content -Raw -Encoding UTF8 tasks/T-0205-media-import-and-storage.md`，按实施要点接 Finder 选取和拖放。收到真机和界面反馈时按 T-0009/T-0010 逐项记录。正式迁移仍等 D-12 用户确认。
+
+---
+
 ## 2026-11-20 · 首次 macOS CI 与 Compositor 派生编辑器验证
 
 - **任务**：T-0004、T-0005、T-0202、T-0006、T-0008 已完成。首轮 CI 同时完成 T-0201、T-0204、T-0206、T-0305、T-0306、T-0501 的运行验收。T-0207 部分验收，余下全格式／色彩测试。T-0009 已细化，待接取。

@@ -28,6 +28,11 @@ updated: 2026-11-20
 - [ ] AC2：CI 固定样本验证照片方向／色彩和视频缩略图；原 AC2 的草稿原子替换和解码失败测试见 T-0206 的 AC2/AC3。
 - [ ] AC3：目标 Mac 验证 Finder 选取、拖放及权限反馈。
 
+## 实施要点
+
+- 复用 [T-0207](T-0207-local-media-library.md) 已验证的 `MediaLibrary.importFiles`，在 AppMac 加 Finder 选择和拖放入口。以 App 拥有的本地数据目录保存副本，列表按选择顺序反馈成功、无权限及坏文件。
+- 影响 `app/Apps/Mac/`、`app/project.yml` 和 AppMac 测试。复用五格式合成输入，运行 `swift test --package-path app --filter MediaLibraryTests` 及 AppMac scheme 测试，预期缩略图方向、P3、逐项错误和原件不变。目标 Mac 单独验证原生文件选择、拖放及实际权限。
+
 ## 进度日志
 - 2026-11-20：从看板滚动细化。
 - 2026-11-20：将草稿文件持久化及其原验收要求移到 T-0206，先验证 Foundation 文件行为，T-0205 保留媒体导入、缩略图和真机验收。

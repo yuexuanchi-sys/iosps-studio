@@ -4,12 +4,12 @@
 
 - **最后更新**：2026-11-21
 - **当前阶段**：M0 私有仓库、macOS CI 和 Compositor 派生编辑器构建已验收；M1 产品定义待验收，M2 主线正式 CI 已通过
-- **当前任务**：[T-0207 本地素材库与缩略图](tasks/T-0207-local-media-library.md)。[T-0203](tasks/T-0203-mac-snapshot-pipeline.md) 的三套主线快照已验收。[T-0009](tasks/T-0009-compositor-prototype-gift-interface.md) 在 review，[T-0010](tasks/T-0010-compositor-prototype-offline-movie.md) 的 MP4 与签名 ZIP 已验收，真机结果仍为 blocked。
+- **当前任务**：[T-0205 Finder 选取、拖放与权限](tasks/T-0205-media-import-and-storage.md)（`ready`）。[T-0203](tasks/T-0203-mac-snapshot-pipeline.md) 快照与 [T-0207](tasks/T-0207-local-media-library.md) 五格式缩略图已验收。[T-0009](tasks/T-0009-compositor-prototype-gift-interface.md) 在 review，[T-0010](tasks/T-0010-compositor-prototype-offline-movie.md) 的真机结果仍为 blocked。
 - **执行方式**：按 [executor-prompt.md](docs/workflow/executor-prompt.md) 连续推进，WIP = 1
 
 ## 下一步
 
-1. **T-0207 → T-0205**：补齐 HEIC、视频、色彩与尺寸的运行验收，再接 Finder 选取、拖放和权限反馈。
+1. **T-0205**：复用已验收的素材库和合成测试接 Finder 选取、拖放与权限反馈。
 2. **T-0009 / T-0010**：原型 UI [run 44920382778](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44920382778) 等用户评审。签名 ZIP 与短片 [run 44921126380](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44921126380) 已回读。请按 [原型离线验收清单](docs/workflow/prototype-offline-acceptance.md) 实测参考机和目标机。
 3. **T-0301**：接生日主页与日期逻辑；T-0302/T-0304 使用回忆清单与用户素材。
 4. **T-0101 / T-0102 / T-0103 / T-0104**：用户可同时验收 PRD、线框、视觉及命名，并按素材清单私下准备回忆包。D-02 确认后复核工期。

@@ -56,7 +56,7 @@
 - **隔离原型**：T-0010 以 TemplateKit 解析静帧模板，通过 TimelineKit 的 30 fps 帧网格渲染一段引用 MediaIO `MediaID` 的无声 H.264。AppMac 负责将现有照片工程导出为原像素 PNG 并登记，本例只在原型分支验收。
 
 ### MediaIO
-- **状态**：active（磁盘草稿、素材发布和 JPEG 方向经首次 CI 验证；全格式、色彩与 Finder 集成待验收）
+- **状态**：active（磁盘草稿、素材发布，以及 JPEG、PNG、HEIC、MOV、MP4 的方向、Display P3 与尺寸经 CI 验证。Finder 集成进入 T-0205）
 - **职责**：素材导入导出和权限 —— macOS 文件选择与拖拽、可选照片图库入口、保存到文件、缩略图生成、EXIF 方向和色彩空间规范化、`DraftStore` 的文件实现。**唯一允许出现 `#if os()` 的 L2 模块**。
 - **接口**：`FileDraftStore(directory:)` 用 actor 串行化草稿操作，按项目 UUID 原子替换完整 JSON。App 将其放在应用数据目录并共享同一个实例。
 - **接口**：`MediaLibrary(directory:)` 保留源文件副本，用 `MediaID` 恢复引用。导入成功时发布最多 512 像素的 Display P3 PNG 和原件，失败时逐项反馈。
