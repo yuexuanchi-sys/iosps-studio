@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "birthday": "2000-12-02",
+  "metOn": "2021-06-12",
+  "featuredPhoto": "lake.png",
+  "memories": [
+    {
+      "id": "sample-lake",
+      "date": "2025-09-20",
+      "title": "湖畔散步",
+      "note": "那天走到天色变暗，湖面还留着一点金光。",
+      "photos": ["lake.png", "hills.jpg"]
+    }
+  ]
+}

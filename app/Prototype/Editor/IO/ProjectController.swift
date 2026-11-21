@@ -44,6 +44,26 @@ final class ProjectController {
     private var writing: Task<Bool, Never>?
     func finishWriting() async { if let writing { _ = await writing.value } }
 
+    /// Writes the canvas at its current pixel dimensions using the original export encoder.
+    func exportGiftPhoto(_ format: ExportFormat) async {
+        guard (format == .png || format == .jpeg), session.document != nil, begin() else { return }
+        defer { session.isProjectBusy = false }
+        guard let snapshot = session.projectSnapshot(), let url = await savePanel(for: format) else { return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        do {
+            if format == .png {
+                try await ImageExporter.shared.exportPNG(snapshot, to: url)
+            } else {
+                let raster = try await ImageExporter.shared.render(snapshot)
+                let encoded = try await ImageExporter.shared.jpeg(raster, options: JPEGOptions())
+                try await ImageExporter.shared.write(encoded.data, to: url)
+            }
+        } catch {
+            await showError(String(localized: "无法导出照片"), error: error)
+        }
+    }
+
     /// File › Export PNG…: the flattened canvas, lossless, straight to a save panel.
     func exportPNG() async {
         guard session.document != nil, begin() else { return }
@@ -207,7 +227,7 @@ final class ProjectController {
         panel.allowedContentTypes = [format.type]
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
-        panel.title = "Export " + format.rawValue
+        panel.title = String(localized: "导出 \(format.rawValue)")
         panel.nameFieldStringValue = Self.exportName(projectURL: session.projectURL, source: session.sourceImageURL, format: format)
         if session.projectURL == nil, let source = session.sourceImageURL {
             panel.directoryURL = source.deletingLastPathComponent()
@@ -334,7 +354,7 @@ final class ProjectController {
             panel.nameFieldStringValue = session.projectURL?.lastPathComponent
                 ?? source.map { $0.deletingPathExtension().lastPathComponent + ".comp" } ?? "Untitled.comp"
             if let source { panel.directoryURL = source.deletingLastPathComponent() }
-            panel.title = asNew ? "Save Project As" : "Save Project"
+            panel.title = asNew ? String(localized: "另存工程") : String(localized: "保存工程")
             let response: NSApplication.ModalResponse
             if let window { response = await panel.beginSheetModal(for: window) }
             else { response = await panel.begin() }
@@ -364,7 +384,7 @@ final class ProjectController {
                 watchProject(at: destination)
                 return true
             } catch {
-                await showError("Couldn’t save the project", error: error)
+                await showError(String(localized: "无法保存工程"), error: error)
                 return false
             }
         }
@@ -397,7 +417,7 @@ final class ProjectController {
         // A recent project deleted in Finder: name the project, not the manifest inside it the load would miss.
         guard FileManager.default.fileExists(atPath: source.path) else {
             RecentProjects.shared.refresh()
-            await showError("Couldn’t open the project", error: CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: source.path]))
+            await showError(String(localized: "无法打开工程"), error: CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: source.path]))
             return false
         }
         let scoped = source.startAccessingSecurityScopedResource()
@@ -418,7 +438,7 @@ final class ProjectController {
             watchProject(at: source)
             return true
         } catch {
-            await showError("Couldn’t open the project", error: error)
+            await showError(String(localized: "无法打开工程"), error: error)
             return false
         }
     }
@@ -456,11 +476,12 @@ final class ProjectController {
         await finishWriting()
         guard session.isModified, session.document != nil else { return true }
         let alert = NSAlert()
-        alert.messageText = "Save changes to \(session.projectURL?.lastPathComponent ?? "Untitled")?"
-        alert.informativeText = "Your changes will be lost if you don’t save them."
-        alert.addButton(withTitle: "Save")
-        alert.addButton(withTitle: "Cancel")
-        alert.addButton(withTitle: "Don’t Save")
+        let name = session.projectURL?.lastPathComponent ?? String(localized: "未命名工程")
+        alert.messageText = String(localized: "保存对「\(name)」的修改？")
+        alert.informativeText = String(localized: "保存后可以再次打开工程，继续编辑。")
+        alert.addButton(withTitle: String(localized: "保存"))
+        alert.addButton(withTitle: String(localized: "取消"))
+        alert.addButton(withTitle: String(localized: "不保存"))
         let response = await show(alert)
         if response == .alertFirstButtonReturn { return await saveCurrent() }
         return response == .alertThirdButtonReturn
@@ -471,7 +492,7 @@ final class ProjectController {
         alert.alertStyle = .warning
         alert.messageText = title
         alert.informativeText = error.localizedDescription
-        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: String(localized: "好"))
         _ = await show(alert)
     }
 

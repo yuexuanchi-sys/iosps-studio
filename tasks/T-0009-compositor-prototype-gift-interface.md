@@ -39,3 +39,4 @@ updated: 2026-11-21
 ## 进度日志
 
 - 2026-11-20：从 T-0008 细化，承接原 AC2 的界面与原 AC3 的生日和回忆验收。
+- 2026-11-21：先运行验收测试。[run 44918131135](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44918131135)（`70e24805d124407b15e1c217faf7e75d8ac86fe5`）完成 L1 和 Release 构建，旧入口在 `testChineseEntryAndAppearanceVariants` 第 11 行因缺少「生日快乐」按预期失败。

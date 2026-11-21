@@ -2,6 +2,7 @@ import AppKit
 
 final class CompositorApplicationDelegate: NSObject, NSApplicationDelegate {
     let workspace = ProjectWorkspace()
+    let giftNavigation = GiftNavigation()
     var session: EditorSession { workspace.current.session }
     var projects: ProjectController { workspace.current.controller }
     var showEditor: (() -> Void)?
@@ -14,6 +15,7 @@ final class CompositorApplicationDelegate: NSObject, NSApplicationDelegate {
     }
     // Finder Open With and Dock drops, including files delivered during launch.
     func application(_ application: NSApplication, open urls: [URL]) {
+        giftNavigation.page = .editor
         // Reopening a window that's already showing makes SwiftUI rebuild it, so the app blinks out and back:
         // only a closed editor is reopened.
         if !application.windows.contains(where: { $0.isVisible && $0.identifier?.rawValue.hasPrefix("editor") == true }) {
@@ -23,7 +25,10 @@ final class CompositorApplicationDelegate: NSObject, NSApplicationDelegate {
             else { DispatchQueue.main.async { Self.reopen() } }
         }
         application.activate()
-        Task { await workspace.receive(urls) }
+        Task {
+            await workspace.receive(urls)
+            workspace.current.session.selectTool(.hand)
+        }
     }
 
     private static func reopen() {
@@ -48,16 +53,6 @@ final class CompositorApplicationDelegate: NSObject, NSApplicationDelegate {
                   self.session.canvasOnly, self.session.escapeHasNothingToCancel, NSApp.keyWindow === self.projects.window,
                   !(NSApp.keyWindow?.firstResponder is NSText) else { return event }
             self.toggleCanvasOnly()
-            return nil
-        }
-        // ⌥⇧⌘W, Photoshop's newer Export As key, opens Export As too, as its menu's ⌥⇧⌘S does, unless the person has
-        // given the combination to another command.
-        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self, event.charactersIgnoringModifiers?.lowercased() == "w",
-                  event.modifierFlags.intersection([.command, .control, .option, .shift]) == [.command, .option, .shift],
-                  NSApp.keyWindow === self.projects.window, self.session.document != nil, self.projects.canStart,
-                  !ShortcutSettings.shared.overrides.values.contains(ShortcutChord("w", 11)) else { return event }
-            Task { await self.projects.exportAs() }
             return nil
         }
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in

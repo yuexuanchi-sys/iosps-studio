@@ -1,5 +1,6 @@
 name: IOSPSCompositorPrototype
 options:
+  developmentLanguage: zh-Hans
   deploymentTarget:
     macOS: "26.0"
 settings:
@@ -15,6 +16,9 @@ settings:
     GCC_C_LANGUAGE_STANDARD: gnu17
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
+packages:
+  IOSPSModules:
+    path: .
 targets:
   CompositorPrototype:
     type: application
@@ -23,6 +27,12 @@ targets:
       - Prototype/Editor
       - path: Prototype/compositor-license.txt
         buildPhase: resources
+      - path: Prototype/fixtures/gift-sample
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: IOSPSModules
+        product: GiftKit
     settings:
       base:
         PRODUCT_NAME: IOSPSCompositorPrototype

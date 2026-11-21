@@ -105,6 +105,8 @@ final class ProjectWorkspace {
         var urls = suppliedURL.map { [$0] } ?? []
         if urls.isEmpty {
             let panel = NSOpenPanel()
+            panel.title = String(localized: "打开工程")
+            panel.prompt = String(localized: "打开")
             panel.allowedContentTypes = [.compositorProject]
             panel.allowsMultipleSelection = true
             panel.treatsFilePackagesAsDirectories = false
