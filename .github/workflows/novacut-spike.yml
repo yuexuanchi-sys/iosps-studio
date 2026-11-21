@@ -1,0 +1,33 @@
+name: NovaCut isolated editing validation
+
+on:
+  push:
+    branches: [codex/t-0607-novacut]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: xcode-27
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Validate repository and toolchain
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+          python3 tools/check_repo.py
+      - name: Build and exercise the native editing core
+        run: bash spikes/novacut/verify.sh "$RUNNER_TEMP/novacut-evidence"
+      - name: Upload synthetic source and export evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: novacut-two-clip-evidence
+          path: ${{ runner.temp }}/novacut-evidence
+          if-no-files-found: error
+          retention-days: 7
