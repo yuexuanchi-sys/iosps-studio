@@ -40,3 +40,5 @@ updated: 2026-11-21
 
 - 2026-11-20：从 T-0008 细化，承接原 AC2 的界面与原 AC3 的生日和回忆验收。
 - 2026-11-21：先运行验收测试。[run 44918131135](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44918131135)（`70e24805d124407b15e1c217faf7e75d8ac86fe5`）完成 L1 和 Release 构建，旧入口在 `testChineseEntryAndAppearanceVariants` 第 11 行因缺少「生日快乐」按预期失败。
+- 2026-11-21：[run 44918616083](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44918616083)（`499ae9ba0b00d6e393d819463f7474a91e9b5e85`）通过构建、编辑回归和导航。下载浅／深色六张并查看 `artifacts/prototype/44918616083/review-sheet.png`。首轮放大组和浅色 PNG 内容相同，已改用 App 内字号选项及标题尺寸断言。 [SwiftUI 字号在 macOS 的行为](https://developer.apple.com/documentation/swiftui/environmentvalues/dynamictypesize)
+- 2026-11-21：[run 44918850143](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44918850143)（`443dc11058fa88b32ab2bdc809bb75cc053c7145`）导航通过，系统选图面板选中 `source.jpg` 后仍停在面板，未到画布。失败日志 `artifacts/prototype/44918850143/failed.log`。测试改为等待每个原生面板的确认按钮可用后操作，再检查画布。

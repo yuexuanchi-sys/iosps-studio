@@ -228,6 +228,7 @@ final class ProjectController {
     /// Where an export goes: named after the project or the image it began as, and for an image, in its folder.
     private func savePanel(for format: ExportFormat, editedCopy: Bool = false) async -> URL? {
         let panel = NSSavePanel()
+        panel.prompt = String(localized: "保存")
         panel.allowedContentTypes = [format.type]
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
@@ -354,6 +355,7 @@ final class ProjectController {
         var destination = asNew ? nil : session.projectURL
         if destination == nil {
             let panel = NSSavePanel()
+            panel.prompt = String(localized: "保存")
             panel.allowedContentTypes = [.compositorProject]
             panel.canCreateDirectories = true
             panel.isExtensionHidden = false

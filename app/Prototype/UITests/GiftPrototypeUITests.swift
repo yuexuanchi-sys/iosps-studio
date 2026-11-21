@@ -114,8 +114,9 @@ final class GiftPrototypeUITests: XCTestCase {
     private func expectSize(_ app: XCUIApplication, width: Int, height: Int) {
         let size = app.staticTexts["gift-pixel-size"]
         let expected = "\(width) × \(height) 像素"
-        let matching = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", expected), object: size)
-        XCTAssertEqual(XCTWaiter.wait(for: [matching], timeout: 12), .completed, "Expected \(expected), got \(size.label)")
+        XCTAssertTrue(size.waitForExistence(timeout: 12), "Missing canvas size \(expected)")
+        let matching = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@ OR value == %@", expected, expected), object: size)
+        XCTAssertEqual(XCTWaiter.wait(for: [matching], timeout: 8), .completed, "Expected \(expected), got \(size.label)")
     }
 
     @MainActor
@@ -133,9 +134,11 @@ final class GiftPrototypeUITests: XCTestCase {
 
     @MainActor
     private func chooseFile(_ url: URL, in app: XCUIApplication) {
-        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 6))
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 6))
         goTo(url, in: app)
-        app.typeKey(.return, modifierFlags: [])
+        confirm(sheet.buttons["打开"])
+        XCTAssertTrue(sheet.waitForNonExistence(timeout: 8))
     }
 
     @MainActor
@@ -148,11 +151,19 @@ final class GiftPrototypeUITests: XCTestCase {
         name.click()
         app.typeKey("a", modifierFlags: .command)
         app.typeText(url.lastPathComponent)
-        app.typeKey(.return, modifierFlags: [])
+        confirm(sheet.buttons["保存"])
         let written = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             FileManager.default.fileExists(atPath: url.path)
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [written], timeout: 15), .completed)
+    }
+
+    @MainActor
+    private func confirm(_ button: XCUIElement) {
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: button)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 6), .completed)
+        button.click()
     }
 
     @MainActor
