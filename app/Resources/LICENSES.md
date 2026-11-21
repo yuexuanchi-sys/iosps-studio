@@ -9,3 +9,4 @@
 | actions/upload-artifact v6.0.0 | CI 上传 ZIP 与截图 | [MIT](https://github.com/actions/upload-artifact/blob/b7c566a772e6b6bfb58ed0dc250532a479d7789f/LICENSE) | 否 |
 | Compositor 源码 | 隔离原型的画布、编辑状态和导出 | [固定提交 4a17b264](https://github.com/robbietilton/Compositor/tree/4a17b264a93b6da5fa5ff81357e6194ef9ad61a2) · [MIT 与原始版权](../Prototype/compositor-license.txt) | 只随隔离原型 |
 | 合成回忆包 | 生日首屏、回忆浏览与公共测试 | [本仓库生成的虚构清单与风景图](../Prototype/fixtures/gift-sample/memories.json)，不含外部素材 | 只随隔离原型 |
+| 「一张照片」模板 | 原型静帧短片 | [本仓库生成的静帧模板](../Prototype/fixtures/memory-still.json)，无外部素材 | 只随隔离原型 |

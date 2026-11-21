@@ -44,6 +44,36 @@ final class ProjectController {
     private var writing: Task<Bool, Never>?
     func finishWriting() async { if let writing { _ = await writing.value } }
 
+    func exportGiftMovie() async -> URL? {
+        guard session.document != nil, begin() else { return nil }
+        defer { session.isProjectBusy = false }
+        guard let snapshot = session.projectSnapshot() else { return nil }
+        let panel = NSSavePanel()
+        panel.title = String(localized: "导出回忆短片")
+        panel.prompt = String(localized: "保存")
+        panel.allowedContentTypes = [.mpeg4Movie]
+        panel.canCreateDirectories = true
+        panel.isExtensionHidden = false
+        let name = (session.projectURL ?? session.sourceImageURL)?
+            .deletingPathExtension().lastPathComponent ?? String(localized: "回忆短片")
+        panel.nameFieldStringValue = name + "-memory.mp4"
+        guard await run(panel), let destination = panel.url else { return nil }
+
+        let temporary = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp4")
+        defer { try? FileManager.default.removeItem(at: temporary) }
+        do {
+            let library = try GiftMovieExport.applicationLibrary()
+            _ = try await GiftMovieExport.render(snapshot, library: library, to: temporary)
+            let scope = destination.startAccessingSecurityScopedResource()
+            defer { if scope { destination.stopAccessingSecurityScopedResource() } }
+            try await ImageExporter.shared.write(Data(contentsOf: temporary), to: destination)
+            return destination
+        } catch {
+            await showError(String(localized: "无法导出回忆短片"), error: error)
+            return nil
+        }
+    }
+
     /// Writes the canvas at its current pixel dimensions using the original export encoder.
     func exportGiftPhoto(_ format: ExportFormat) async {
         guard (format == .png || format == .jpeg), session.document != nil, begin() else { return }

@@ -25,14 +25,25 @@ targets:
     platform: macOS
     sources:
       - Prototype/Editor
+      - Prototype/VideoEngine
       - path: Prototype/compositor-license.txt
         buildPhase: resources
       - path: Prototype/fixtures/gift-sample
         type: folder
         buildPhase: resources
+      - path: Prototype/fixtures/memory-still.json
+        buildPhase: resources
     dependencies:
       - package: IOSPSModules
         product: GiftKit
+      - package: IOSPSModules
+        product: BirthdayCore
+      - package: IOSPSModules
+        product: MediaIO
+      - package: IOSPSModules
+        product: TemplateKit
+      - package: IOSPSModules
+        product: TimelineKit
     settings:
       base:
         PRODUCT_NAME: IOSPSCompositorPrototype
@@ -54,6 +65,8 @@ targets:
       - Prototype/Tests
     dependencies:
       - target: CompositorPrototype
+      - package: IOSPSModules
+        product: MediaIO
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.compositorprototype.tests

@@ -4,7 +4,7 @@
 
 - **最后更新**：2026-11-21
 - **当前阶段**：M0 私有仓库、macOS CI 和 Compositor 派生编辑器构建已验收；M1 产品定义待验收，M2 主线正式 CI 已通过
-- **当前任务**：[T-0009 Compositor 原型中文编辑、生日和回忆](tasks/T-0009-compositor-prototype-gift-interface.md)（`in-progress`）。[T-0008](tasks/T-0008-compositor-integrated-prototype.md) 的 [run 44784457809](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44784457809) 已通过并下载回读。
+- **当前任务**：[T-0010 Compositor 原型短片和离线真机验收](tasks/T-0010-compositor-prototype-offline-movie.md)（`in-progress`）。[T-0009](tasks/T-0009-compositor-prototype-gift-interface.md) 经 [run 44920382778](https://github.com/yuexuanchi-sys/iosps-studio/actions/runs/44920382778) 完成客观验收，等待界面评审。
 - **执行方式**：按 [executor-prompt.md](docs/workflow/executor-prompt.md) 连续推进，WIP = 1
 
 ## 下一步

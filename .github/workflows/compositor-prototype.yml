@@ -82,8 +82,11 @@ jobs:
           app="$RUNNER_TEMP/iosps-prototype/Build/Products/Release/IOSPSCompositorPrototype.app"
           mkdir -p "$output"
           test "$(lipo -archs "$app/Contents/MacOS/IOSPSCompositorPrototype")" = arm64
-          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist"
+          minimum_os="$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")"
+          printf 'Minimum macOS: %s\n' "$minimum_os"
+          test "$minimum_os" = "26.0"
           cmp app/Prototype/compositor-license.txt "$app/Contents/Resources/compositor-license.txt"
+          cmp app/Prototype/fixtures/memory-still.json "$app/Contents/Resources/memory-still.json"
           test ! -d "$app/Contents/Frameworks/Sparkle.framework"
           codesign -d --entitlements :- "$app" > "$output/entitlements.plist"
           python3 - app/Prototype/config/prototype.entitlements "$output/entitlements.plist" <<'PY'

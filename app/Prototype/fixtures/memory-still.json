@@ -1,0 +1,12 @@
+{
+  "formatVersion": 1,
+  "id": "memory-still",
+  "name": "一张照片",
+  "scenes": [
+    {
+      "frames": 90,
+      "transitionFrames": 0,
+      "motion": "still"
+    }
+  ]
+}

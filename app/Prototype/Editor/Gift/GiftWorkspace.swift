@@ -47,6 +47,7 @@ struct GiftSample {
 final class GiftNavigation {
     var page: GiftPage = .birthday
     var isPickingPhoto = false
+    var lastSavedMovie: URL?
     let sample = try? GiftSample.load()
 
     func choosePhoto(in workspace: ProjectWorkspace) async {
@@ -68,6 +69,11 @@ final class GiftNavigation {
         page = .editor
         await workspace.receive([url])
         workspace.current.session.selectTool(.hand)
+    }
+
+    func exportMovie(in workspace: ProjectWorkspace) async {
+        guard workspace.canSwitch else { return }
+        lastSavedMovie = await workspace.current.controller.exportGiftMovie()
     }
 }
 

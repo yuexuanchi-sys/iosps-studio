@@ -32,6 +32,31 @@ final class GiftPrototypeUITests: XCTestCase {
     }
 
     @MainActor
+    func testExportMovieFromRetouchedPhoto() throws {
+        continueAfterFailure = false
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("iosps-movie-ui-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let app = XCUIApplication()
+        app.launch()
+        app.typeKey("2", modifierFlags: .command)
+        let sample = app.buttons["gift-edit-sample"].firstMatch
+        XCTAssertTrue(sample.waitForExistence(timeout: 5))
+        sample.click()
+        expectSize(app, width: 960, height: 640)
+        app.typeKey("r", modifierFlags: .command)
+        expectSize(app, width: 640, height: 960)
+        app.typeKey("m", modifierFlags: [.command, .shift])
+        let movie = directory.appendingPathComponent("memory.mp4")
+        saveFile(movie, in: app)
+        XCTAssertTrue(app.buttons["gift-movie-saved"].waitForExistence(timeout: 8))
+        let attachment = XCTAttachment(data: try Data(contentsOf: movie), uniformTypeIdentifier: UTType.mpeg4Movie.identifier)
+        attachment.name = "retouched-memory"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
     func testPhotoWorkflowThroughCommandsAndFilePanels() throws {
         continueAfterFailure = false
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("iosps-ui-\(UUID().uuidString)", isDirectory: true)

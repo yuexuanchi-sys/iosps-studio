@@ -104,6 +104,9 @@ private struct GiftCommands: Commands {
             Button("导出 JPEG…") { Task { await controller.exportGiftPhoto(.jpeg) } }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(!editorVisible || !canWrite)
+            Button("导出回忆短片…") { Task { await navigation.exportMovie(in: workspace) } }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
+                .disabled(!editorVisible || !canWrite)
         }
         CommandGroup(replacing: .undoRedo) {
             Button("撤销") {

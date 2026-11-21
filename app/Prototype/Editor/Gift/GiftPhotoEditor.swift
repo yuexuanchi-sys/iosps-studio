@@ -94,6 +94,8 @@ struct GiftPhotoEditor: View {
             Menu("导出") {
                 Button("导出 PNG…") { Task { await tab.controller.exportGiftPhoto(.png) } }
                 Button("导出 JPEG…") { Task { await tab.controller.exportGiftPhoto(.jpeg) } }
+                Divider()
+                Button("导出回忆短片…") { Task { await navigation.exportMovie(in: workspace) } }
             }
             .disabled(session.document == nil || !workspace.canSwitch || session.cropRect != nil)
         }
@@ -192,6 +194,11 @@ struct GiftPhotoEditor: View {
             Text("\(document.width) × \(document.height) 像素")
                 .accessibilityIdentifier("gift-pixel-size")
             if working { ProgressView().controlSize(.small).accessibilityLabel("正在处理") }
+            if let movie = navigation.lastSavedMovie {
+                Button("查看短片") { NSWorkspace.shared.activateFileViewerSelecting([movie]) }
+                    .help("在访达中显示已保存的 MP4")
+                    .accessibilityIdentifier("gift-movie-saved")
+            }
             Spacer()
             Button("缩小", systemImage: "minus.magnifyingglass") { session.zoomKeyboard(by: -1) }
                 .labelStyle(.iconOnly)
