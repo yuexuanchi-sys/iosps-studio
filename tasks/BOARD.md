@@ -38,7 +38,7 @@
 | [T-0204](T-0204-birthday-core-projects-and-history.md) | BirthdayCore：工程模型 + 命令 / 撤销栈 + 草稿协议 | done | P0 | BirthdayCore | T-0201 | F-14 |
 | [T-0205](T-0205-media-import-and-storage.md) | MediaIO：Finder 选图、拖入与权限验收 | ready | P0 | MediaIO | T-0201, T-0207 | F-06 |
 | [T-0206](T-0206-file-draft-store.md) | MediaIO：草稿原子替换与恢复 | done | P0 | MediaIO | T-0204 | F-14 |
-| [T-0207](T-0207-local-media-library.md) | MediaIO：本地素材库与缩略图 | blocked | P0 | MediaIO | T-0201 | F-06 |
+| [T-0207](T-0207-local-media-library.md) | MediaIO：本地素材库与缩略图 | in-progress | P0 | MediaIO | T-0201 | F-06 |
 
 ## M3 礼物体验
 

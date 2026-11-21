@@ -2,14 +2,14 @@
 id: T-0207
 title: MediaIO 本地素材库与缩略图
 milestone: M2
-status: blocked
+status: in-progress
 priority: P0
 modules: MediaIO
 features: F-06
 depends: T-0201
 verify: L0,L2
 owner: AI
-updated: 2026-11-20
+updated: 2026-11-21
 ---
 
 # T-0207 · MediaIO 本地素材库与缩略图
@@ -33,6 +33,7 @@ updated: 2026-11-20
 - 假设：每项先写到应用数据目录的临时子目录，生成缩略图后同卷移动到 UUID 目录。批次中互不影响，权限只在复制源文件时需要。原件以字节保留，后续引擎按自己的色彩空间渲染。
 - ImageIO 处理静态图方向，AVAssetImageGenerator 处理视频方向与首帧。禁止视频外部引用。512 像素缩略图用于小屏和 8 GB 参考机的媒体列表。[Apple ImageIO](https://developer.apple.com/documentation/imageio/cgimagesourcecreatethumbnailatindex%28_%3A_%3A_%3A%29) · [Apple 视频缩略图](https://developer.apple.com/documentation/avfoundation/avassetimagegenerator/image(at:))
 - 先写合成图片、坏文件和批次边界测试，再实现文件与缩略图。Finder 的选择、拖放和权限交互由 T-0205 验收。
+- 本次补测 `app/Tests/MediaIOTests/MediaLibraryTests.swift`。现场生成 768×384 PNG、JPEG、HEIC 和带 90° 轨道变换的 MOV、MP4，由 `MediaLibrary.importFiles` 导入，再回读原件和每张 P3 缩略图。预期原件字节一致，长边 512，JPEG／HEIC／视频变为竖图。主线 `swift test --package-path app --filter MediaLibraryTests` 预期五格式通过，其他 L2 验收沿用现有 CI。
 
 ## 进度日志
 
