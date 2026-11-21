@@ -22,9 +22,9 @@ unzip -p "$work/source.zip" "$upstream/LICENSE" > "$output/LICENSE-NovaCut.txt"
   unzip -p "$work/source.zip" "$upstream/src/ui/App.swift" |
     sed -n '/^enum EditorError: LocalizedError {$/,/^}$/p'
 } > "$work/EditorError.swift"
-patch "$work/Composicion.swift" "$spike/swift6.patch"
+patch -d "$work" -p0 < "$spike/swift6.patch"
 
-xcrun swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos14.0 \
+xcrun swiftc -swift-version 6 -strict-concurrency=complete -whole-module-optimization -target arm64-apple-macos14.0 \
   "$work/"*.swift "$spike/main.swift" -o "$work/verify"
 xcrun vtool -show-build "$work/verify" | tee "$output/build-target.txt"
 grep -Eq 'minos 14\.0([[:space:]]|$)' "$output/build-target.txt"

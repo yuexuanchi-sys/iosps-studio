@@ -10,3 +10,15 @@
 -    private static var registro: [MTAudioProcessingTap: TapDePaneo] = [:]
 +    // All registry reads and writes use cerrojo, including AVFoundation callbacks.
 +    private nonisolated(unsafe) static var registro: [MTAudioProcessingTap: TapDePaneo] = [:]
+--- LUTs.swift
++++ LUTs.swift
+@@ -21 +21,2 @@
+-    private static var cache: [String: CuboDeLUT] = [:]
++    // Every access is synchronized with cerrojo.
++    private nonisolated(unsafe) static var cache: [String: CuboDeLUT] = [:]
+--- Mezclador.swift
++++ Mezclador.swift
+@@ -657 +657,2 @@
+-    private static var registro: [MTAudioProcessingTap: TapDeMezcla] = [:]
++    // Every access is synchronized with cerrojo.
++    private nonisolated(unsafe) static var registro: [MTAudioProcessingTap: TapDeMezcla] = [:]
