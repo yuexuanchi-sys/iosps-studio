@@ -51,7 +51,6 @@ public struct BirthdayGreetingView: View {
                             }
                         }
                         .buttonStyle(.bordered)
-                        .keyboardShortcut("e", modifiers: [.command, .shift])
                         .accessibilityIdentifier("birthday-easter-egg")
                     }
                     if configurationFailed {

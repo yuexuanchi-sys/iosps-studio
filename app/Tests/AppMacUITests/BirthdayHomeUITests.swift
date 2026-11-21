@@ -10,9 +10,8 @@ final class BirthdayHomeUITests: XCTestCase {
         XCTAssertTrue(egg.exists && egg.isEnabled && egg.isHittable)
 
         app.typeKey("e", modifierFlags: [.command, .shift])
-        let alert = app.alerts.firstMatch
-        XCTAssertTrue(alert.waitForExistence(timeout: 5))
-        alert.buttons.firstMatch.click()
+        XCTAssertTrue(app.staticTexts["birthday-easter-egg-notice"].waitForExistence(timeout: 5))
+        app.buttons["birthday-easter-egg-dismiss"].click()
         app.buttons["shared-media-entry"].click()
         XCTAssertTrue(app.buttons["media-finder-picker"].waitForExistence(timeout: 5))
     }
