@@ -17,8 +17,11 @@ for name in "${sources[@]}"; do
   unzip -p "$work/source.zip" "$upstream/src/ui/$name.swift" > "$work/$name.swift"
 done
 unzip -p "$work/source.zip" "$upstream/LICENSE" > "$output/LICENSE-NovaCut.txt"
-unzip -p "$work/source.zip" "$upstream/src/ui/App.swift" |
-  sed -n '/^enum EditorError: LocalizedError {$/,/^}$/p' > "$work/EditorError.swift"
+{
+  printf 'import Foundation\n\n'
+  unzip -p "$work/source.zip" "$upstream/src/ui/App.swift" |
+    sed -n '/^enum EditorError: LocalizedError {$/,/^}$/p'
+} > "$work/EditorError.swift"
 patch "$work/Composicion.swift" "$spike/swift6.patch"
 
 xcrun swiftc -swift-version 6 -strict-concurrency=complete -target arm64-apple-macos14.0 \
