@@ -196,7 +196,7 @@ struct GiftWorkspace: View {
             if let sample = navigation.sample, !sample.manifest.memories.isEmpty {
                 ForEach(sample.manifest.memories, id: \.id) { memory in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("\(memory.date.year) 年 \(memory.date.month) 月 \(memory.date.day) 日")
+                        Text("\(memory.date.year.formatted(.number.grouping(.never))) 年 \(memory.date.month) 月 \(memory.date.day) 日")
                             .font(.callout)
                             .foregroundStyle(accent)
                         Text(memory.title)

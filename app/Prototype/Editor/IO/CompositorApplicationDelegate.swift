@@ -44,6 +44,28 @@ final class CompositorApplicationDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, self.giftNavigation.page == .editor,
+                  let window = NSApp.keyWindow, window.firstResponder is CanvasView,
+                  window.attachedSheet == nil,
+                  event.modifierFlags.intersection([.command, .control, .option]).isEmpty else { return event }
+            if event.keyCode == 48 {
+                if event.modifierFlags.contains(.shift) { window.selectPreviousKeyView(nil) }
+                else { window.selectNextKeyView(nil) }
+                return nil
+            }
+            guard self.session.tool == .hand else { return event }
+            let delta: CGSize
+            switch event.keyCode {
+            case 123: delta = CGSize(width: -24, height: 0)
+            case 124: delta = CGSize(width: 24, height: 0)
+            case 125: delta = CGSize(width: 0, height: 24)
+            case 126: delta = CGSize(width: 0, height: -24)
+            default: return event
+            }
+            self.session.viewport.translate(by: delta)
+            return nil
+        }
         // View › Canvas Only's key is a plain F, and the menu takes a plain letter even while something is being
         // typed. So an F meant for a text field (the palette's search, a layer's name, a number) goes straight to it,
         // before the menu sees it.

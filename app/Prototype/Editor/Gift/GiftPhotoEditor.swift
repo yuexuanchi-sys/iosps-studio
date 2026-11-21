@@ -53,6 +53,9 @@ struct GiftPhotoEditor: View {
                 }
             }
         }
+        .onAppear {
+            if session.tool == .move { session.selectTool(.hand) }
+        }
         .alert("无法完成操作", isPresented: Binding(
             get: { session.importError != nil || session.cropError != nil || session.brushError != nil },
             set: { if !$0 { session.importError = nil; session.cropError = nil; session.brushError = nil } }
@@ -206,6 +209,7 @@ struct GiftPhotoEditor: View {
                 session.selectTool(.hand)
                 session.canvasFocusRequest += 1
             }
+            .help("拖动画布，或用方向键平移")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)

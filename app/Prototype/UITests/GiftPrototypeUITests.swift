@@ -53,7 +53,7 @@ final class GiftPrototypeUITests: XCTestCase {
         }
 
         let zoomValue = app.staticTexts["gift-zoom-value"]
-        let initialZoom = zoomValue.label
+        let initialZoom = try XCTUnwrap(zoomValue.value as? String)
         app.typeKey("=", modifierFlags: .command)
         waitForLabelChange(zoomValue, from: initialZoom)
         app.typeKey("h", modifierFlags: [.command, .shift])
@@ -121,7 +121,7 @@ final class GiftPrototypeUITests: XCTestCase {
 
     @MainActor
     private func waitForLabelChange(_ element: XCUIElement, from oldValue: String) {
-        let matching = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != %@", oldValue), object: element)
+        let matching = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", oldValue), object: element)
         XCTAssertEqual(XCTWaiter.wait(for: [matching], timeout: 5), .completed)
     }
 
