@@ -49,13 +49,26 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.compositorprototype.tests
         GENERATE_INFOPLIST_FILE: "YES"
         TEST_HOST: $(BUILT_PRODUCTS_DIR)/IOSPSCompositorPrototype.app/Contents/MacOS/IOSPSCompositorPrototype
+  CompositorPrototypeUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - Prototype/UITests
+    dependencies:
+      - target: CompositorPrototype
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.compositorprototype.uitests
+        GENERATE_INFOPLIST_FILE: "YES"
 schemes:
   CompositorPrototype:
     build:
       targets:
         CompositorPrototype: all
         CompositorPrototypeTests: [test]
+        CompositorPrototypeUITests: [test]
     test:
       config: Debug
       targets:
         - CompositorPrototypeTests
+        - CompositorPrototypeUITests

@@ -52,12 +52,30 @@ jobs:
           time xcodebuild -project IOSPSCompositorPrototype.xcodeproj -scheme CompositorPrototype \
             -configuration Release -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/iosps-prototype" build
-      - name: Check inherited editing
+      - name: Check inherited editing and gift interface
         working-directory: app
         run: |
           xcodebuild -project IOSPSCompositorPrototype.xcodeproj -scheme CompositorPrototype \
             -configuration Debug -destination 'platform=macOS' \
-            -derivedDataPath "$RUNNER_TEMP/iosps-prototype" -parallel-testing-enabled NO test
+            -derivedDataPath "$RUNNER_TEMP/iosps-prototype" -parallel-testing-enabled NO \
+            -resultBundlePath "$RUNNER_TEMP/iosps-prototype-tests.xcresult" test
+      - name: Collect UI evidence
+        if: always()
+        run: |
+          result="$RUNNER_TEMP/iosps-prototype-tests.xcresult"
+          evidence="$RUNNER_TEMP/iosps-prototype-ui"
+          if [ -d "$result" ]; then
+            mkdir -p "$evidence"
+            xcrun xcresulttool export attachments --path "$result" --output-path "$evidence"
+          fi
+      - name: Upload UI evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: iosps-compositor-ui
+          path: ${{ runner.temp }}/iosps-prototype-ui
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify and package prototype
         run: |
           output="$RUNNER_TEMP/iosps-prototype-artifacts"

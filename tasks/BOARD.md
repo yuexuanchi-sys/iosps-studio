@@ -16,7 +16,7 @@
 | [T-0006](T-0006-compositor-reuse-spike.md) | Compositor 修图底座只读预评估 | done | P0 | docs | T-0003, T-0005 | F-07, F-08, F-13, F-14, F-21 |
 | [T-0007](T-0007-windows-swift-toolchain.md) | Windows 本地 Swift 工具链（L1 本地测试） | blocked | P1 | infra | none | — |
 | [T-0008](T-0008-compositor-integrated-prototype.md) | Compositor 派生编辑器构建与回归 | done | P0 | AppMac, GiftKit, MediaIO, VideoEngine | T-0006, T-0202 | F-01, F-02, F-07, F-08, F-13, F-14, F-15 |
-| [T-0009](T-0009-compositor-prototype-gift-interface.md) | Compositor 原型中文编辑、生日和回忆 | ready | P0 | AppMac, DesignSystem, GiftKit, MediaIO | T-0008 | F-01, F-02, F-07, F-08, F-13, F-14 |
+| [T-0009](T-0009-compositor-prototype-gift-interface.md) | Compositor 原型中文编辑、生日和回忆 | in-progress | P0 | AppMac, DesignSystem, GiftKit, MediaIO | T-0008 | F-01, F-02, F-07, F-08, F-13, F-14 |
 | [T-0010](T-0010-compositor-prototype-offline-movie.md) | Compositor 原型短片和离线真机验收 | ready | P0 | AppMac, MediaIO, TemplateKit, TimelineKit, VideoEngine | T-0009, T-0501 | F-13, F-15 |
 
 ## M1 产品定义
