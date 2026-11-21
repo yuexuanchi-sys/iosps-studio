@@ -93,7 +93,7 @@ playerItem.videoComposition = render.composicionDeVideo
 playerItem.audioMix = render.mezclaDeAudio
 let preview = AVAssetImageGenerator(asset: playerItem.asset)
 preview.videoComposition = playerItem.videoComposition
-try await verifyFrames(preview, pngPrefix: "preview")
+try verifyFrames(preview, pngPrefix: "preview")
 print("Preview after reopening: B green through frame 29, A red from frame 30")
 
 let edited = output.appendingPathComponent("edited.mp4")
@@ -113,7 +113,7 @@ let exportedAudio = try await exportedAsset.loadTracks(withMediaType: .audio)
 let exportedVideo = try await exportedAsset.loadTracks(withMediaType: .video)
 try check(abs(duration - 2) <= 1.0 / 30 && exportedAudio.count == 1 && exportedVideo.count == 1,
           "Expected two seconds, one video track and one audio track in exported MP4")
-try await verifyFrames(AVAssetImageGenerator(asset: exportedAsset), pngPrefix: "export")
+try verifyFrames(AVAssetImageGenerator(asset: exportedAsset), pngPrefix: "export")
 print("Offline MP4: \(duration)s, \(exportedVideo.count) video track, \(exportedAudio.count) audio track, exact cut at frame 30")
 
 @MainActor
@@ -131,11 +131,13 @@ func export(_ session: AVAssetExportSession, to url: URL, type: AVFileType) asyn
 }
 
 @MainActor
-func verifyFrames(_ generator: AVAssetImageGenerator, pngPrefix: String) async throws {
+func verifyFrames(_ generator: AVAssetImageGenerator, pngPrefix: String) throws {
     generator.requestedTimeToleranceBefore = .zero
     generator.requestedTimeToleranceAfter = .zero
     for (frame, expected) in [(15, FrameColor.green), (29, .green), (30, .red), (45, .red)] {
-        let image = try await generator.image(at: CMTime(value: CMTimeValue(frame), timescale: 30)).image
+        let image = try generator.copyCGImage(
+            at: CMTime(value: CMTimeValue(frame), timescale: 30), actualTime: nil
+        )
         guard let context = CGContext(
             data: nil, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
