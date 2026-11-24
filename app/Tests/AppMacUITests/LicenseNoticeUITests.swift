@@ -18,8 +18,9 @@ final class LicenseNoticeUITests: XCTestCase {
         picker.click()
         app.typeKey(.downArrow, modifierFlags: [])
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(contains("GitHub, Inc. and contributors", in: text),
-                      "\(text.debugDescription)\n\(picker.debugDescription)")
+        let updated = NSPredicate(format: "value CONTAINS %@", "GitHub, Inc. and contributors")
+        let expectation = XCTNSPredicateExpectation(predicate: updated, object: text)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 5), .completed)
 
         let attachment = XCTAttachment(screenshot: app.windows["关于 IOSPS"].screenshot())
         attachment.name = "about-licenses"
