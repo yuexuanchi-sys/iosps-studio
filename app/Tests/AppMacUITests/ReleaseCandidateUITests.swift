@@ -162,8 +162,9 @@ final class ReleaseCandidateUITests: XCTestCase {
 
     @MainActor
     private func assertResult(_ filename: String, _ status: String, in app: XCUIApplication) {
-        let row = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", filename, status)).firstMatch
+        let result = NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ OR value CONTAINS %@ AND value CONTAINS %@",
+                                 filename, status, filename, status)
+        let row = app.staticTexts.matching(result).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
     }
 
