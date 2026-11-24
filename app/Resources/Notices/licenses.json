@@ -1,0 +1,20 @@
+[
+  {
+    "id": "xcodegen",
+    "title": "XcodeGen 2.48.0",
+    "license": "MIT",
+    "source": "https://github.com/yonaskolb/XcodeGen/blob/2.48.0/LICENSE"
+  },
+  {
+    "id": "actions-checkout",
+    "title": "actions/checkout v6.0.2",
+    "license": "MIT",
+    "source": "https://github.com/actions/checkout/blob/de0fac2e4500dabe0009e67214ff5f5447ce83dd/LICENSE"
+  },
+  {
+    "id": "actions-upload-artifact",
+    "title": "actions/upload-artifact v6.0.0",
+    "license": "MIT",
+    "source": "https://github.com/actions/upload-artifact/blob/b7c566a772e6b6bfb58ed0dc250532a479d7789f/LICENSE"
+  }
+]

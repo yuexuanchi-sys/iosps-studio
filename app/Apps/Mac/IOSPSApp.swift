@@ -22,6 +22,22 @@ struct IOSPSApp: App {
         .defaultSize(width: 720, height: 480)
         .commands {
             BirthdayCommands(reload: birthday.reload)
+            AboutCommands()
+        }
+        Window("关于 IOSPS", id: "about") {
+            AboutLicensesView()
+        }
+        .defaultSize(width: 620, height: 460)
+    }
+}
+
+private struct AboutCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button("关于 IOSPS") { openWindow(id: "about") }
+                .accessibilityIdentifier("about-iosps")
         }
     }
 }

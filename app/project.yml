@@ -16,6 +16,9 @@ targets:
     platform: macOS
     sources:
       - Apps/Mac
+      - path: Resources/Notices
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: IOSPSModules
         product: DesignSystem
