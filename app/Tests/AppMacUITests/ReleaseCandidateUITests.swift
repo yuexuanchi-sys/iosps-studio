@@ -34,7 +34,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         let panel = showPicker(in: app)
         goTo(fixtures[0].deletingLastPathComponent(), in: app)
         namedElement("portrait.jpg", in: panel).click()
-        panel.buttons["Open"].click()
+        panel.buttons["OKButton"].click()
         assertResult("portrait.jpg", "照片已导入", in: app)
         let afterOne = libraryFolders().subtracting(before)
         XCTAssertEqual(afterOne.count, 1)
@@ -52,7 +52,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         goTo(fixtures[0].deletingLastPathComponent(), in: app)
         namedElement("portrait.jpg", in: retry).click()
         app.typeKey("a", modifierFlags: .command)
-        retry.buttons["Open"].click()
+        retry.buttons["OKButton"].click()
         for (number, file) in fixtures.enumerated() {
             assertResult(file.lastPathComponent, number < 3 ? "照片已导入" : "视频已导入", in: app)
         }
@@ -140,7 +140,7 @@ final class ReleaseCandidateUITests: XCTestCase {
     @MainActor
     private func showPicker(in app: XCUIApplication) -> XCUIElement {
         app.typeKey("i", modifierFlags: [.command, .shift])
-        let panel = app.sheets.firstMatch
+        let panel = app.sheets["open-panel"]
         XCTAssertTrue(panel.waitForExistence(timeout: 5), app.debugDescription)
         return panel
     }
@@ -155,7 +155,7 @@ final class ReleaseCandidateUITests: XCTestCase {
     @MainActor
     private func namedElement(_ label: String, in root: XCUIElement) -> XCUIElement {
         let element = root.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@", label)).firstMatch
+            .matching(NSPredicate(format: "label == %@ OR value == %@", label, label)).firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: 5), root.debugDescription)
         return element
     }
