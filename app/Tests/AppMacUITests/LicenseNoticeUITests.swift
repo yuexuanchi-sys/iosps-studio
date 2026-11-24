@@ -12,19 +12,23 @@ final class LicenseNoticeUITests: XCTestCase {
         about.click()
         let text = app.staticTexts["license-text"]
         XCTAssertTrue(text.waitForExistence(timeout: 5))
-        XCTAssertTrue(text.label.contains("Yonas Kolb"))
+        XCTAssertTrue(contains("Yonas Kolb", in: text), text.debugDescription)
 
-        let picker = app.descendants(matching: .any).matching(identifier: "license-picker").firstMatch
+        let picker = app.popUpButtons["license-picker"]
         picker.click()
         app.typeKey(.downArrow, modifierFlags: [])
         app.typeKey(.return, modifierFlags: [])
-        let updated = NSPredicate(format: "label CONTAINS %@", "GitHub, Inc. and contributors")
-        let expectation = XCTNSPredicateExpectation(predicate: updated, object: text)
-        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 5), .completed)
+        XCTAssertTrue(contains("GitHub, Inc. and contributors", in: text),
+                      "\(text.debugDescription)\n\(picker.debugDescription)")
 
         let attachment = XCTAttachment(screenshot: app.windows["关于 IOSPS"].screenshot())
         attachment.name = "about-licenses"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    @MainActor
+    private func contains(_ expected: String, in element: XCUIElement) -> Bool {
+        element.label.contains(expected) || (element.value as? String)?.contains(expected) == true
     }
 }
