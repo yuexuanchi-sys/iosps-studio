@@ -104,7 +104,26 @@ jobs:
           unzip -Z1 "$output/IOSPS.app.zip" | grep -Fx 'IOSPS.app/Contents/MacOS/IOSPS'
           archive_check="$RUNNER_TEMP/iosps-package-check"
           ditto -x -k "$output/IOSPS.app.zip" "$archive_check"
-          codesign --verify --deep --strict --verbose=2 "$archive_check/IOSPS.app"
+          signed_app="$archive_check/IOSPS.app"
+          executable="$signed_app/Contents/MacOS/IOSPS"
+          codesign --verify --deep --strict --verbose=2 "$signed_app"
+          test "$(lipo -archs "$executable")" = arm64
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$signed_app/Contents/Info.plist")" = 14.0
+          xcrun vtool -show-build "$executable" | tee "$output/build-target.txt"
+          grep -Eq '^[[:space:]]+minos 14\.0$' "$output/build-target.txt"
+          codesign -d --entitlements - "$signed_app" > "$output/signed-entitlements.plist"
+          python3 - "$output/signed-entitlements.plist" <<'PY' | tee "$output/signed-entitlements.txt"
+          import plistlib
+          import sys
+          from pathlib import Path
+
+          payload = Path(sys.argv[1]).read_bytes()
+          signed = plistlib.loads(payload) if payload else {}
+          if signed != {}:
+              raise SystemExit(f"Unexpected Release entitlements: {signed}")
+          print("Release signed entitlements: {}")
+          PY
+          diff -rq app/Resources/Notices "$signed_app/Contents/Resources/Notices"
           (cd "$output" && shasum -a 256 IOSPS.app.zip > IOSPS.app.zip.sha256)
       - name: Upload Mac build artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -116,6 +135,8 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/license-window/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
+            ${{ runner.temp }}/iosps-artifacts/build-target.txt
+            ${{ runner.temp }}/iosps-artifacts/signed-entitlements.txt
             ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip
             ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip.sha256
           if-no-files-found: error

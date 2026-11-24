@@ -2,6 +2,8 @@
 
 当前 App 使用系统界面字体和 Swift、Apple SDK，安装包没有第三方捆绑素材。项目源码的公开许可由仓库维护者决定。内置素材的登记字段见 [视觉规范](../../docs/product/visual-style.md)。
 
+「关于 IOSPS」可离线查看构建工具的固定版本、上游来源、版权和许可原文。随包资源在 [Notices](Notices/licenses.json)，用于致谢。
+
 | 项目 | 用途 | 来源与许可 | 是否随 App 分发 |
 |---|---|---|---|
 | XcodeGen | 将 project.yml 生成 Xcode 工程 | [XcodeGen 2.48.0](https://github.com/yonaskolb/XcodeGen/releases/tag/2.48.0) · [MIT](https://github.com/yonaskolb/XcodeGen/blob/2.48.0/LICENSE) | 否 |
