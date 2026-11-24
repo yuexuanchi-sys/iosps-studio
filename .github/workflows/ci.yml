@@ -28,11 +28,12 @@ defaults:
 
 jobs:
   macos:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: f5aca7b2c97b2b4f378c3611de525e0aa6862c9f
           persist-credentials: false
       - name: Print runner and validate repository
         run: |
@@ -40,6 +41,8 @@ jobs:
           uname -m
           xcodebuild -version
           swift --version
+          test "$(git rev-parse HEAD)" = f5aca7b2c97b2b4f378c3611de525e0aa6862c9f
+          git rev-parse HEAD
           python3 tools/check_repo.py
       - name: Run Swift package tests
         run: swift test --package-path app
