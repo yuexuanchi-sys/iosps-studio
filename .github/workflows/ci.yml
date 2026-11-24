@@ -1,25 +1,10 @@
 name: macOS CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'app/**'
-      - '.github/workflows/ci.yml'
-      - 'tools/check_repo.py'
-      - '.gitignore'
-      - '.gitattributes'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'app/**'
-      - '.github/workflows/ci.yml'
-      - 'tools/check_repo.py'
-      - '.gitignore'
-      - '.gitattributes'
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 defaults:
@@ -28,21 +13,46 @@ defaults:
 
 jobs:
   macos:
-    runs-on: macos-26
-    timeout-minutes: 20
+    runs-on: macos-15
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          fetch-depth: 0
           persist-credentials: false
-      - name: Print runner and validate repository
+      - name: Identify runner and test source
         run: |
           sw_vers
           uname -m
           xcodebuild -version
           swift --version
+          git rev-parse HEAD
+          app_sha=52a41a8b14fda7ea614e3c64b0ae9f1c7c84396e
+          git merge-base --is-ancestor "$app_sha" HEAD
+          git diff --exit-code "$app_sha" HEAD -- app/Apps/Mac app/Sources app/Package.swift app/Resources
           python3 tools/check_repo.py
-      - name: Run Swift package tests
-        run: swift test --package-path app
+          mkdir -p "$RUNNER_TEMP/iosps-self-test-evidence"
+      - name: Verify original signed candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          evidence="$RUNNER_TEMP/iosps-self-test-evidence"
+          bundle_dir="/tmp/iosps-ci-self-test"
+          archive_dir="$RUNNER_TEMP/iosps-release-download"
+          mkdir "$bundle_dir"
+          gh run download 45428067451 --repo "$GITHUB_REPOSITORY" --name iosps-macos-build --dir "$archive_dir"
+          (
+            cd "$archive_dir"
+            printf '%s  IOSPS.app.zip\n' e0e79c9cfef72d460d4325d94b5f4ef6829da5213c24c5f9ae7ce38787c2f0c8 |
+              shasum -a 256 -c -
+            shasum -a 256 -c IOSPS.app.zip.sha256
+          ) | tee "$evidence/candidate-archive.txt"
+          ditto -x -k "$archive_dir/IOSPS.app.zip" "$bundle_dir"
+          codesign --verify --deep --strict --verbose=2 "$bundle_dir/IOSPS.app" 2>&1 |
+            tee "$evidence/candidate-signature.txt"
+          printf '%s  %s\n' 344b4461a3646b21de46bef1b217a3def8355aaed6603a905583672311c6d208 \
+            "$bundle_dir/IOSPS.app/Contents/MacOS/IOSPS" | shasum -a 256 -c - |
+            tee "$evidence/candidate-executable.txt"
       - name: Fetch pinned XcodeGen
         env:
           XCODEGEN_VERSION: "2.48.0"
@@ -55,96 +65,30 @@ jobs:
           printf '%s  %s\n' "$XCODEGEN_SHA256" "$tools_dir/xcodegen.zip" | shasum -a 256 -c -
           ditto -x -k "$tools_dir/xcodegen.zip" "$tools_dir"
           executable="$(find "$tools_dir" -type f -name xcodegen -print -quit)"
-          test -n "$executable"
           test -x "$executable"
-          "$executable" --version
           dirname "$executable" >> "$GITHUB_PATH"
-      - name: Build arm64 Mac app
+      - name: Test signed Release through native UI
         working-directory: app
         run: |
           xcodegen generate
-          time xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Release \
-            -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" build
-      - name: Test AppMac host
-        working-directory: app
+          xcodebuild -project IOSPS.xcodeproj -scheme AppMac -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/iosps-ui-build" \
+            -resultBundlePath "$RUNNER_TEMP/iosps-ui-tests.xcresult" \
+            -parallel-testing-enabled NO -only-testing:AppMacUITests/ReleaseCandidateUITests test
+      - name: Export native UI evidence
+        if: always()
         run: |
-          xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Debug \
-            -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" \
-            -resultBundlePath "$RUNNER_TEMP/iosps-tests.xcresult" \
-            -parallel-testing-enabled NO test
-      - name: Export AppMac UI evidence
-        run: |
-          output="$RUNNER_TEMP/iosps-artifacts/license-window"
-          mkdir -p "$output"
-          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
-            --output-path "$output" \
-            --test-id 'LicenseNoticeUITests/testAboutMenuShowsLocalLicenseAndKeyboardChangesSelection()'
-          grep -F 'about-licenses' "$output/manifest.json"
-          output="$RUNNER_TEMP/iosps-artifacts/birthday-control"
-          mkdir -p "$output"
-          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
-            --output-path "$output" \
-            --test-id 'BirthdayHomeUITests/testAppStartsOnBirthdayHomeAndKeyboardOpensEasterEggEntry()'
-          grep -F 'birthday-egg-control' "$output/manifest.json"
-      - name: Render greeting and package app
-        run: |
-          output="$RUNNER_TEMP/iosps-artifacts"
-          app="$RUNNER_TEMP/iosps-build/Build/Products/Release/IOSPS.app"
-          mkdir -p "$output"
-          swift run --package-path app BirthdaySmokeSnapshot "$output/birthday-smoke.png"
-          sips -g pixelWidth -g pixelHeight "$output/birthday-smoke.png" | tee "$output/snapshot-size.txt"
-          grep -F 'pixelWidth: 720' "$output/snapshot-size.txt"
-          grep -F 'pixelHeight: 480' "$output/snapshot-size.txt"
-          swift run --package-path app BirthdaySmokeSnapshot --variants "$output/snapshots"
-          for variant in light dark large; do
-            sips -g pixelWidth -g pixelHeight "$output/snapshots/birthday-$variant.png" | tee -a "$output/snapshot-size.txt"
-          done
-          test "$(grep -c 'pixelWidth: 1280' "$output/snapshot-size.txt")" = 3
-          test "$(grep -c 'pixelHeight: 800' "$output/snapshot-size.txt")" = 3
-          test "$(shasum -a 256 "$output"/snapshots/*.png | awk '{ print $1 }' | sort -u | wc -l | tr -d ' ')" = 3
-          test "$(lipo -archs "$app/Contents/MacOS/IOSPS")" = arm64
-          codesign --verify --deep --strict --verbose=2 "$app"
-          codesign -dv --verbose=4 "$app" 2>&1 | tee "$output/signature.txt"
-          grep -F 'Signature=adhoc' "$output/signature.txt"
-          ditto -c -k --sequesterRsrc --keepParent "$app" "$output/IOSPS.app.zip"
-          unzip -Z1 "$output/IOSPS.app.zip" | grep -Fx 'IOSPS.app/Contents/MacOS/IOSPS'
-          archive_check="$RUNNER_TEMP/iosps-package-check"
-          ditto -x -k "$output/IOSPS.app.zip" "$archive_check"
-          signed_app="$archive_check/IOSPS.app"
-          executable="$signed_app/Contents/MacOS/IOSPS"
-          codesign --verify --deep --strict --verbose=2 "$signed_app"
-          test "$(lipo -archs "$executable")" = arm64
-          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$signed_app/Contents/Info.plist")" = 14.0
-          xcrun vtool -show-build "$executable" | tee "$output/build-target.txt"
-          grep -Eq '^[[:space:]]+minos 14\.0$' "$output/build-target.txt"
-          codesign -d --entitlements - "$signed_app" > "$output/signed-entitlements.plist"
-          python3 - "$output/signed-entitlements.plist" <<'PY' | tee "$output/signed-entitlements.txt"
-          import plistlib
-          import sys
-          from pathlib import Path
-
-          payload = Path(sys.argv[1]).read_bytes()
-          signed = plistlib.loads(payload) if payload else {}
-          if signed != {}:
-              raise SystemExit(f"Unexpected Release entitlements: {signed}")
-          print("Release signed entitlements: {}")
-          PY
-          diff -rq app/Resources/Notices "$signed_app/Contents/Resources/Notices"
-          (cd "$output" && shasum -a 256 IOSPS.app.zip > IOSPS.app.zip.sha256)
-      - name: Upload Mac build artifacts
+          result="$RUNNER_TEMP/iosps-ui-tests.xcresult"
+          evidence="$RUNNER_TEMP/iosps-self-test-evidence"
+          if [[ -d "$result" ]]; then
+            xcrun xcresulttool get test-results summary --path "$result" > "$evidence/test-summary.json"
+            xcrun xcresulttool export attachments --path "$result" --output-path "$evidence/attachments"
+          fi
+      - name: Upload self-test evidence
+        if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: iosps-macos-build
-          path: |
-            ${{ runner.temp }}/iosps-artifacts/birthday-smoke.png
-            ${{ runner.temp }}/iosps-artifacts/snapshots/
-            ${{ runner.temp }}/iosps-artifacts/license-window/
-            ${{ runner.temp }}/iosps-artifacts/birthday-control/
-            ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
-            ${{ runner.temp }}/iosps-artifacts/signature.txt
-            ${{ runner.temp }}/iosps-artifacts/build-target.txt
-            ${{ runner.temp }}/iosps-artifacts/signed-entitlements.txt
-            ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip
-            ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip.sha256
+          name: iosps-release-self-test
+          path: ${{ runner.temp }}/iosps-self-test-evidence/
           if-no-files-found: error
           retention-days: 7

@@ -58,6 +58,7 @@ targets:
     platform: macOS
     sources:
       - Tests/AppMacUITests
+      - Tests/MediaIOTests/SyntheticMediaFixtures.swift
     dependencies:
       - target: AppMac
     settings:
