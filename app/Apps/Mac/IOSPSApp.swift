@@ -37,7 +37,6 @@ private struct AboutCommands: Commands {
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button("关于 IOSPS") { openWindow(id: "about") }
-                .accessibilityIdentifier("about-iosps")
         }
     }
 }

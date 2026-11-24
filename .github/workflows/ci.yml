@@ -70,7 +70,16 @@ jobs:
         run: |
           xcodebuild -project IOSPS.xcodeproj -scheme AppMac -configuration Debug \
             -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" \
+            -resultBundlePath "$RUNNER_TEMP/iosps-tests.xcresult" \
             -parallel-testing-enabled NO test
+      - name: Export license window evidence
+        run: |
+          output="$RUNNER_TEMP/iosps-artifacts/license-window"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output" \
+            --test-id 'LicenseNoticeUITests/testAboutMenuShowsLocalLicenseAndKeyboardChangesSelection()'
+          grep -F 'about-licenses' "$output/manifest.json"
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -104,6 +113,7 @@ jobs:
           path: |
             ${{ runner.temp }}/iosps-artifacts/birthday-smoke.png
             ${{ runner.temp }}/iosps-artifacts/snapshots/
+            ${{ runner.temp }}/iosps-artifacts/license-window/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip
