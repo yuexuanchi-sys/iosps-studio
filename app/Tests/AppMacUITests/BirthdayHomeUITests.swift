@@ -8,6 +8,10 @@ final class BirthdayHomeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10))
         let egg = app.buttons["birthday-easter-egg"]
         XCTAssertTrue(egg.exists && egg.isEnabled && egg.isHittable)
+        let control = XCTAttachment(screenshot: egg.screenshot())
+        control.name = "birthday-egg-control"
+        control.lifetime = .keepAlways
+        add(control)
 
         app.typeKey("e", modifierFlags: [.command, .shift])
         XCTAssertTrue(app.staticTexts["birthday-easter-egg-notice"].waitForExistence(timeout: 5))
