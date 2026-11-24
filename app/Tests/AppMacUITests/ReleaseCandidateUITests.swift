@@ -25,9 +25,9 @@ final class ReleaseCandidateUITests: XCTestCase {
     }
 
     @MainActor
-    func testNativePickerCancellationPreservesResultsAndAllowsRetry() async throws {
+    func testNativePickerCancellationPreservesResultsAndAllowsRetry() throws {
         continueAfterFailure = false
-        let fixtures = try await makeFixtures(named: "picker-inputs")
+        let fixtures = fixtures(in: "picker-inputs")
         let before = libraryFolders()
         let app = try openMedia()
 
@@ -64,17 +64,15 @@ final class ReleaseCandidateUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 5))
         toolbarButton.click()
         assertResult("portrait.jpg", "照片已导入", in: app)
-        assertResult("portrait.mp4", "视频已导入", in: app)
+        assertResult("source-b.mp4", "视频已导入", in: app)
     }
 
     @MainActor
-    func testFinderDragWithReadFailureAndRetry() async throws {
+    func testFinderDragWithReadFailureAndRetry() throws {
         continueAfterFailure = false
-        let sources = try await makeFixtures(named: "finder-inputs")
+        let sources = fixtures(in: "finder-inputs")
         let invalid = sources[0].deletingLastPathComponent().appending(path: "broken.png")
         let unsupported = invalid.deletingLastPathComponent().appending(path: "notes.txt")
-        try Data("invalid PNG\n".utf8).write(to: invalid)
-        try Data("synthetic fixture\n".utf8).write(to: unsupported)
         let before = libraryFolders()
         let app = try openMedia()
 
@@ -197,10 +195,10 @@ final class ReleaseCandidateUITests: XCTestCase {
         start.click(forDuration: 0.2, thenDragTo: end)
     }
 
-    private func makeFixtures(named name: String) async throws -> [URL] {
+    private func fixtures(in name: String) -> [URL] {
         let directory = root.appending(path: name, directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
-        return try await SyntheticMediaFixtures.writeSupportedFormats(in: directory)
+        return ["portrait.jpg", "landscape.png", "landscape.heic", "source-a.mov", "source-b.mp4"]
+            .map { directory.appending(path: $0) }
     }
 
     private func libraryFolders() -> Set<URL> {

@@ -53,6 +53,15 @@ jobs:
           printf '%s  %s\n' 344b4461a3646b21de46bef1b217a3def8355aaed6603a905583672311c6d208 \
             "$bundle_dir/IOSPS.app/Contents/MacOS/IOSPS" | shasum -a 256 -c - |
             tee "$evidence/candidate-executable.txt"
+      - name: Prepare shared synthetic media
+        run: |
+          fixtures="app/Tests/ReleaseCandidateFixtures"
+          test_dir="/tmp/iosps-ci-self-test"
+          mkdir "$test_dir/picker-inputs" "$test_dir/finder-inputs"
+          cp "$fixtures/portrait.jpg" "$fixtures/landscape.png" "$fixtures/source-a.mov" "$fixtures/source-b.mp4" \
+            "$test_dir/picker-inputs/"
+          sips -s format heic "$test_dir/picker-inputs/landscape.png" --out "$test_dir/picker-inputs/landscape.heic"
+          cp "$test_dir/picker-inputs/"* "$fixtures/broken.png" "$fixtures/notes.txt" "$test_dir/finder-inputs/"
       - name: Fetch pinned XcodeGen
         env:
           XCODEGEN_VERSION: "2.48.0"
