@@ -12,7 +12,10 @@ final class BirthdayHomeUITests: XCTestCase {
         app.typeKey("e", modifierFlags: [.command, .shift])
         XCTAssertTrue(app.staticTexts["birthday-easter-egg-notice"].waitForExistence(timeout: 5))
         app.buttons["birthday-easter-egg-dismiss"].click()
-        app.buttons["shared-media-entry"].click()
+        // macOS 15 exposes the toolbar item and its button with the same identifier.
+        let mediaEntry = app.windows["IOSPS"].toolbars.buttons.matching(identifier: "shared-media-entry").firstMatch
+        XCTAssertTrue(mediaEntry.isHittable)
+        mediaEntry.click()
         XCTAssertTrue(app.buttons["media-finder-picker"].waitForExistence(timeout: 5))
     }
 }
