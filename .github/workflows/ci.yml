@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: 8cea387fd89dd9f5c4508b8ef921c5f4c92e60eb
+          ref: 52a41a8b14fda7ea614e3c64b0ae9f1c7c84396e
           persist-credentials: false
       - name: Print runner and validate repository
         run: |
@@ -41,7 +41,7 @@ jobs:
           uname -m
           xcodebuild -version
           swift --version
-          test "$(git rev-parse HEAD)" = 8cea387fd89dd9f5c4508b8ef921c5f4c92e60eb
+          test "$(git rev-parse HEAD)" = 52a41a8b14fda7ea614e3c64b0ae9f1c7c84396e
           git rev-parse HEAD
           python3 tools/check_repo.py
       - name: Run Swift package tests
@@ -75,7 +75,7 @@ jobs:
             -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" \
             -resultBundlePath "$RUNNER_TEMP/iosps-tests.xcresult" \
             -parallel-testing-enabled NO test
-      - name: Export license window evidence
+      - name: Export AppMac UI evidence
         run: |
           output="$RUNNER_TEMP/iosps-artifacts/license-window"
           mkdir -p "$output"
@@ -83,6 +83,12 @@ jobs:
             --output-path "$output" \
             --test-id 'LicenseNoticeUITests/testAboutMenuShowsLocalLicenseAndKeyboardChangesSelection()'
           grep -F 'about-licenses' "$output/manifest.json"
+          output="$RUNNER_TEMP/iosps-artifacts/birthday-control"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output" \
+            --test-id 'BirthdayHomeUITests/testAppStartsOnBirthdayHomeAndKeyboardOpensEasterEggEntry()'
+          grep -F 'birthday-egg-control' "$output/manifest.json"
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -136,6 +142,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/birthday-smoke.png
             ${{ runner.temp }}/iosps-artifacts/snapshots/
             ${{ runner.temp }}/iosps-artifacts/license-window/
+            ${{ runner.temp }}/iosps-artifacts/birthday-control/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/build-target.txt
