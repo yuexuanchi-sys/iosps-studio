@@ -52,7 +52,7 @@ public struct BirthdayGreetingView: View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 28) {
                 greetingContent
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(idealWidth: 282, maxWidth: .infinity, alignment: .leading)
                 illustration(size: 240)
             }
             .padding(.horizontal, 36)

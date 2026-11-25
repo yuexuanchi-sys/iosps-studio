@@ -135,6 +135,15 @@ jobs:
           PY
           diff -rq app/Resources/Notices "$signed_app/Contents/Resources/Notices"
           (cd "$output" && shasum -a 256 IOSPS.app.zip > IOSPS.app.zip.sha256)
+          open -n "$signed_app"
+          for attempt in {1..10}; do
+            if lsof -a -c IOSPS -d txt -Fn | grep -Fx "n$executable"; then
+              break
+            fi
+            sleep 1
+          done
+          lsof -a -c IOSPS -d txt -Fn | grep -Fx "n$executable" | tee "$output/launched-executable.txt"
+          shasum -a 256 "$executable" | tee -a "$output/launched-executable.txt"
       - name: Upload Mac build artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
@@ -148,6 +157,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/build-target.txt
             ${{ runner.temp }}/iosps-artifacts/signed-entitlements.txt
+            ${{ runner.temp }}/iosps-artifacts/launched-executable.txt
             ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip
             ${{ runner.temp }}/iosps-artifacts/IOSPS.app.zip.sha256
           if-no-files-found: error
