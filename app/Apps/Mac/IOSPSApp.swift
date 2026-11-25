@@ -8,15 +8,22 @@ import SwiftUI
 @MainActor
 struct IOSPSApp: App {
     private static let applicationDirectory = URL.applicationSupportDirectory.appending(path: "org.iosps.birthday")
-    @State private var session = MediaImportSession(library: MediaLibrary(
-        directory: Self.applicationDirectory.appending(path: "Media", directoryHint: .isDirectory)
-    ))
+    @State private var session: MediaImportSession
+    @State private var editor: VideoEditingSession
     @State private var birthday = Self.makeBirthdaySession()
     @State private var celebration = BirthdayCelebrationPanel()
 
+    init() {
+        let local = Self.localDataDirectory()
+        let library = MediaLibrary(directory: local.appending(path: "Media", directoryHint: .isDirectory))
+        let drafts = FileDraftStore(directory: local.appending(path: "Drafts", directoryHint: .isDirectory))
+        _session = State(wrappedValue: MediaImportSession(library: library))
+        _editor = State(wrappedValue: VideoEditingSession(library: library, drafts: drafts))
+    }
+
     var body: some Scene {
         WindowGroup {
-            MainWindow(session: session, birthday: birthday, celebration: celebration)
+            MainWindow(session: session, editor: editor, birthday: birthday, celebration: celebration)
         }
         .defaultSize(width: 720, height: 480)
         .commands {
@@ -27,6 +34,15 @@ struct IOSPSApp: App {
             AboutLicensesView()
         }
         .defaultSize(width: 620, height: 460)
+    }
+
+    private static func localDataDirectory() -> URL {
+        #if DEBUG
+        if let directory = ProcessInfo.processInfo.environment["IOSPS_TEST_VIDEO_DIRECTORY"] {
+            return URL(fileURLWithPath: directory, isDirectory: true)
+        }
+        #endif
+        return applicationDirectory
     }
 
     private static func makeBirthdaySession() -> BirthdayHomeSession {
@@ -55,11 +71,14 @@ private struct AboutCommands: Commands {
 }
 
 private struct MainWindow: View {
+    private enum Page { case birthday, media, video }
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let session: MediaImportSession
+    let editor: VideoEditingSession
     let birthday: BirthdayHomeSession
     let celebration: BirthdayCelebrationPanel
-    @State private var showsMedia = false
+    @State private var pageSelection = Page.birthday
     @State private var showsEasterEggNotice = false
     @State private var eggTrigger = EasterEggTrigger()
     @State private var eggFocusRequest = 0
@@ -78,7 +97,7 @@ private struct MainWindow: View {
             .focusedSceneValue(\.birthdayActions, BirthdayActions(
                 openEgg: openEasterEgg,
                 replay: replay,
-                canReplay: !showsMedia && birthday.day().map { birthday.metrics(on: $0).isBirthday } == true
+                canReplay: pageSelection == .birthday && birthday.day().map { birthday.metrics(on: $0).isBirthday } == true
             ))
             .sheet(isPresented: $showsEasterEggNotice, onDismiss: { eggFocusRequest += 1 }) {
                 eggSheet
@@ -88,8 +107,10 @@ private struct MainWindow: View {
 
     @ViewBuilder
     private var page: some View {
-        if showsMedia {
+        if pageSelection == .media {
             MediaImportView(session: session)
+        } else if pageSelection == .video {
+            VideoEditorView(session: editor)
         } else {
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 greeting(at: context.date)
@@ -137,21 +158,39 @@ private struct MainWindow: View {
         .frame(width: 365)
     }
 
+    @ToolbarContentBuilder
     private var mediaToolbar: some ToolbarContent {
         ToolbarItem(placement: .automatic) {
             Button {
-                eggTrigger = EasterEggTrigger()
-                showsMedia.toggle()
+                navigate(to: .media)
             } label: {
-                if showsMedia {
+                if pageSelection == .media {
                     Label("返回生日主页", systemImage: "house")
                 } else {
                     Label("导入素材", systemImage: "photo.on.rectangle")
                 }
             }
             .accessibilityIdentifier("shared-media-entry")
-            .help(showsMedia ? Text("返回生日主页") : Text("导入素材"))
+            .help(pageSelection == .media ? Text("返回生日主页") : Text("导入素材"))
         }
+        ToolbarItem(placement: .automatic) {
+            Button {
+                navigate(to: .video)
+            } label: {
+                if pageSelection == .video {
+                    Label("返回生日主页", systemImage: "house")
+                } else {
+                    Label("剪辑", systemImage: "scissors")
+                }
+            }
+            .accessibilityIdentifier("video-editor-entry")
+            .help(pageSelection == .video ? Text("返回生日主页") : Text("剪辑"))
+        }
+    }
+
+    private func navigate(to target: Page) {
+        eggTrigger = EasterEggTrigger()
+        pageSelection = pageSelection == target ? .birthday : target
     }
 
     private func countEggTap() {
@@ -166,7 +205,7 @@ private struct MainWindow: View {
     }
 
     private func replay() {
-        guard !showsMedia, let day = birthday.day(), birthday.metrics(on: day).isBirthday else { return }
+        guard pageSelection == .birthday, let day = birthday.day(), birthday.metrics(on: day).isBirthday else { return }
         _ = presentCelebration()
     }
 

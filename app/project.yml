@@ -26,6 +26,12 @@ targets:
         product: MediaIO
       - package: IOSPSModules
         product: GiftKit
+      - package: IOSPSModules
+        product: BirthdayCore
+      - package: IOSPSModules
+        product: TimelineKit
+      - package: IOSPSModules
+        product: VideoEngine
     settings:
       base:
         PRODUCT_NAME: IOSPS

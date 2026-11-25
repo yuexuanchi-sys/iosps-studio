@@ -46,6 +46,14 @@ public struct Timeline: Equatable, Codable, Sendable {
         case outputTooLong
     }
 
+    /// Starts a project with an empty visual track.
+    public init() {
+        clips = []
+        overlaps = []
+        clipStartFrames = []
+        durationFrames = 0
+    }
+
     /// Validates boundaries and computes output positions on an integer frame grid.
     public init(clips: [TimelineClip], overlaps: [Int]) throws {
         guard overlaps.count == max(0, clips.count - 1) else {

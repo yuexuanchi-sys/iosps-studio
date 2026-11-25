@@ -25,6 +25,8 @@ targets.append(.testTarget(name: "MediaIOTests", dependencies: ["BirthdayCore", 
 products.append(.library(name: "DesignSystem", targets: ["DesignSystem"]))
 targets.append(.target(name: "DesignSystem", dependencies: ["GiftKit"], resources: [.process("Resources")]))
 targets.append(.executableTarget(name: "BirthdaySmokeSnapshot", dependencies: ["DesignSystem", "GiftKit"]))
+products.append(.library(name: "VideoEngine", targets: ["VideoEngine"]))
+targets.append(.target(name: "VideoEngine", dependencies: ["BirthdayCore", "TimelineKit"]))
 #endif
 
 let package = Package(

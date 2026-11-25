@@ -46,10 +46,10 @@ struct AboutLicensesView: View {
             Text("许可与致谢")
                 .font(.title2.weight(.semibold))
                 .accessibilityAddTraits(.isHeader)
-            Text("本应用使用 macOS 的系统框架与字体。感谢以下构建与验证工具。")
+            Text("本应用使用 macOS 系统框架与字体，以及以下开源组件与工具。")
                 .foregroundStyle(.secondary)
             if let notice = notices.first(where: { $0.id == selection }) {
-                Picker("构建工具", selection: $selection) {
+                Picker("组件与工具", selection: $selection) {
                     ForEach(notices) { item in
                         Text(verbatim: item.title).tag(Optional(item.id))
                     }

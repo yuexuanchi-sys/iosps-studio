@@ -16,5 +16,11 @@
     "title": "actions/upload-artifact v6.0.0",
     "license": "MIT",
     "source": "https://github.com/actions/upload-artifact/blob/b7c566a772e6b6bfb58ed0dc250532a479d7789f/LICENSE"
+  },
+  {
+    "id": "novacut",
+    "title": "NovaCut · 7221781",
+    "license": "MIT",
+    "source": "https://github.com/JesusMonjeGonzalez/NovaCut/blob/722178133bc8d82592ddc093382511e3e8e591b2/LICENSE"
   }
 ]

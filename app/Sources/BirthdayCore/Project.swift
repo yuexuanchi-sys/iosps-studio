@@ -22,11 +22,33 @@ public struct PhotoEditDocument: Equatable, Codable, Sendable {
 
 /// Preserves video source order and permits repeated uses of one original.
 public struct VideoProject: Equatable, Codable, Sendable {
-    public var sources: [MediaID]
+    /// Stores the selected interval alongside the original media reference.
+    public struct FrameRange: Equatable, Codable, Sendable {
+        public let start: Int
+        public let count: Int
+
+        public init(start: Int, count: Int) {
+            self.start = start
+            self.count = count
+        }
+    }
+
+    public var sources: [MediaID] {
+        didSet {
+            if sources != oldValue {
+                frameRanges = nil
+                sourceNames = nil
+            }
+        }
+    }
+    public private(set) var frameRanges: [FrameRange]?
+    public private(set) var sourceNames: [String]?
 
     /// Accepts an empty sequence for drafts created before import.
-    public init(sources: [MediaID]) {
+    public init(sources: [MediaID], frameRanges: [FrameRange]? = nil, sourceNames: [String]? = nil) {
         self.sources = sources
+        self.frameRanges = frameRanges
+        self.sourceNames = sourceNames
     }
 }
 
