@@ -86,9 +86,10 @@ final class ReleaseCandidateUITests: XCTestCase {
 
         let denied = root.appending(path: "permission-input/denied.png")
         try dropFromFinder([denied], into: app, screenshot: nil)
-        assertResult("denied.png", "无法读取文件", in: app)
+        let failed = assertResult("denied.png", "无法读取文件", in: app)
         assertRowCount(8, in: app)
         app.activate()
+        revealResult(failed, in: app)
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-permission-error")
 
         FileHandle.standardOutput.write(Data("IOSPS_SELF_TEST_RESTORE_PERMISSION\n".utf8))
@@ -98,9 +99,10 @@ final class ReleaseCandidateUITests: XCTestCase {
         }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 15), .completed)
         try dropFromFinder([denied], into: app, screenshot: nil)
-        assertResult("denied.png", "照片已导入", in: app)
+        let imported = assertResult("denied.png", "照片已导入", in: app)
         assertRowCount(9, in: app)
         app.activate()
+        revealResult(imported, in: app)
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-permission-retry")
     }
 
@@ -159,11 +161,22 @@ final class ReleaseCandidateUITests: XCTestCase {
     }
 
     @MainActor
-    private func assertResult(_ filename: String, _ status: String, in app: XCUIApplication) {
+    @discardableResult
+    private func assertResult(_ filename: String, _ status: String, in app: XCUIApplication) -> XCUIElement {
         let result = NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@ OR value CONTAINS %@ AND value CONTAINS %@",
                                  filename, status, filename, status)
         let row = app.staticTexts.matching(result).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10), app.debugDescription)
+        return row
+    }
+
+    @MainActor
+    private func revealResult(_ row: XCUIElement, in app: XCUIApplication) {
+        let list = app.windows["IOSPS"].scrollViews.firstMatch
+        if !list.frame.contains(row.frame) {
+            list.scroll(byDeltaX: 0, deltaY: -600)
+        }
+        XCTAssertTrue(list.frame.contains(row.frame), "The result must be visible in the captured window.")
     }
 
     @MainActor
