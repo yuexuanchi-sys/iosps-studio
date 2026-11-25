@@ -67,6 +67,26 @@ private struct MainWindow: View {
     @State private var checkedFirstLaunch = false
 
     var body: some View {
+        page
+            .task {
+                guard !checkedFirstLaunch else { return }
+                checkedFirstLaunch = true
+                if let day = birthday.day(), birthday.shouldPresentAutomatically(on: day), presentCelebration() {
+                    birthday.recordAutomaticPresentation(on: day)
+                }
+            }
+            .focusedSceneValue(\.birthdayActions, BirthdayActions(
+                openEgg: openEasterEgg,
+                replay: replay,
+                canReplay: !showsMedia && birthday.day().map { birthday.metrics(on: $0).isBirthday } == true
+            ))
+            .sheet(isPresented: $showsEasterEggNotice, onDismiss: { eggFocusRequest += 1 }) {
+                eggSheet
+            }
+            .toolbar { mediaToolbar }
+    }
+
+    private var page: some View {
         Group {
             if showsMedia {
                 MediaImportView(session: session)
@@ -88,56 +108,46 @@ private struct MainWindow: View {
                 }
             }
         }
-        .task {
-            guard !checkedFirstLaunch else { return }
-            checkedFirstLaunch = true
-            if let day = birthday.day(), birthday.shouldPresentAutomatically(on: day), presentCelebration() {
-                birthday.recordAutomaticPresentation(on: day)
+    }
+
+    private var eggSheet: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("生日彩蛋")
+                .font(.title2.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            if let egg = birthday.easterEgg {
+                ScrollView {
+                    Text(verbatim: egg)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("birthday-easter-egg-message")
+                }
+                .frame(idealHeight: 112, maxHeight: 260)
+            } else {
+                Text("彩蛋还未准备好。添加本地素材后，可从「生日」菜单重新加载。")
+                    .accessibilityIdentifier("birthday-easter-egg-notice")
             }
+            Button("好") { showsEasterEggNotice = false }
+                .keyboardShortcut(.cancelAction)
+                .accessibilityIdentifier("birthday-easter-egg-dismiss")
         }
-        .focusedSceneValue(\.birthdayActions, BirthdayActions(
-            openEgg: openEasterEgg,
-            replay: replay,
-            canReplay: !showsMedia && birthday.day().map { birthday.metrics(on: $0).isBirthday } == true
-        ))
-        .sheet(isPresented: $showsEasterEggNotice, onDismiss: { eggFocusRequest += 1 }) {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("生日彩蛋")
-                    .font(.title2.weight(.semibold))
-                    .accessibilityAddTraits(.isHeader)
-                if let egg = birthday.easterEgg {
-                    ScrollView {
-                        Text(verbatim: egg)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityIdentifier("birthday-easter-egg-message")
-                    }
-                    .frame(idealHeight: 112, maxHeight: 260)
+        .padding(24)
+        .frame(width: 365)
+    }
+
+    private var mediaToolbar: some ToolbarContent {
+        ToolbarItem(placement: .automatic) {
+            Button {
+                eggTrigger = EasterEggTrigger()
+                showsMedia.toggle()
+            } label: {
+                if showsMedia {
+                    Label("返回生日主页", systemImage: "house")
                 } else {
-                    Text("彩蛋还未准备好。添加本地素材后，可从「生日」菜单重新加载。")
-                        .accessibilityIdentifier("birthday-easter-egg-notice")
+                    Label("导入素材", systemImage: "photo.on.rectangle")
                 }
-                Button("好") { showsEasterEggNotice = false }
-                    .keyboardShortcut(.cancelAction)
-                    .accessibilityIdentifier("birthday-easter-egg-dismiss")
             }
-            .padding(24)
-            .frame(width: 365)
-        }
-        .toolbar {
-            ToolbarItem {
-                Button {
-                    eggTrigger = EasterEggTrigger()
-                    showsMedia.toggle()
-                } label: {
-                    if showsMedia {
-                        Label("返回生日主页", systemImage: "house")
-                    } else {
-                        Label("导入素材", systemImage: "photo.on.rectangle")
-                    }
-                }
-                .accessibilityIdentifier("shared-media-entry")
-                .help(showsMedia ? Text("返回生日主页") : Text("导入素材"))
-            }
+            .accessibilityIdentifier("shared-media-entry")
+            .help(showsMedia ? Text("返回生日主页") : Text("导入素材"))
         }
     }
 
