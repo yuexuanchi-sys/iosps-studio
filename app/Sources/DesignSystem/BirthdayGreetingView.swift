@@ -6,6 +6,9 @@ import SwiftUI
 @MainActor
 public struct BirthdayGreetingView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @FocusState private var eggFocused: Bool
+    @AccessibilityFocusState private var accessibleEggFocused: Bool
+    @AccessibilityFocusState private var accessibleTitleFocused: Bool
 
     private static let artwork = Bundle.module.url(forResource: "birthday-card-art", withExtension: "png")
         .flatMap { NSImage(contentsOf: $0) }
@@ -16,6 +19,10 @@ public struct BirthdayGreetingView: View {
     private let metrics: GiftMetrics?
     private let configurationFailed: Bool
     private let onEasterEgg: (() -> Void)?
+    private let openAccessibleEgg: (() -> Void)?
+    private let replayCelebration: (() -> Void)?
+    private let eggFocusRequest: Int
+    private let titleFocusRequest: Int
 
     /// Renders the greeting and optional civil-day metrics supplied by the app.
     public init(
@@ -24,7 +31,11 @@ public struct BirthdayGreetingView: View {
         birthday: LocalDay? = nil,
         metrics: GiftMetrics? = nil,
         configurationFailed: Bool = false,
-        onEasterEgg: (() -> Void)? = nil
+        onEasterEgg: (() -> Void)? = nil,
+        openAccessibleEgg: (() -> Void)? = nil,
+        replayCelebration: (() -> Void)? = nil,
+        eggFocusRequest: Int = 0,
+        titleFocusRequest: Int = 0
     ) {
         self.enlargedText = enlargedText
         self.wishes = wishes
@@ -32,6 +43,10 @@ public struct BirthdayGreetingView: View {
         self.metrics = metrics
         self.configurationFailed = configurationFailed
         self.onEasterEgg = onEasterEgg
+        self.openAccessibleEgg = openAccessibleEgg
+        self.replayCelebration = replayCelebration
+        self.eggFocusRequest = eggFocusRequest
+        self.titleFocusRequest = titleFocusRequest
     }
 
     public var body: some View {
@@ -46,6 +61,11 @@ public struct BirthdayGreetingView: View {
         .background {
             LinearGradient(colors: [backgroundHighlight, backgroundBase], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
+        .onChange(of: eggFocusRequest) {
+            eggFocused = true
+            accessibleEggFocused = true
+        }
+        .onChange(of: titleFocusRequest) { accessibleTitleFocused = true }
     }
 
     private var card: some View {
@@ -89,6 +109,7 @@ public struct BirthdayGreetingView: View {
                 .foregroundStyle(ink)
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("birthday-title")
+                .accessibilityFocused($accessibleTitleFocused)
             greetingWish
                 .font(.system(size: enlargedText ? 19 : 16))
                 .foregroundStyle(secondaryInk)
@@ -97,23 +118,53 @@ public struct BirthdayGreetingView: View {
                 .accessibilityIdentifier("birthday-wishes")
             dateMetrics
             if let onEasterEgg {
-                Button(action: onEasterEgg) {
-                    Label {
-                        Text("打开彩蛋", bundle: .module)
-                    } icon: {
-                        Image(systemName: "heart")
-                    }
+                eggButton(onEasterEgg)
+            }
+            if let replayCelebration {
+                Button(action: replayCelebration) {
+                    Text("重播生日祝福", bundle: .module)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(buttonTint)
-                .controlSize(.large)
-                .accessibilityIdentifier("birthday-easter-egg")
+                .accessibilityIdentifier("birthday-celebration-replay")
             }
             if configurationFailed {
                 Text("生日素材读取失败，可从「生日」菜单重试。", bundle: .module)
                     .font(.footnote)
                     .foregroundStyle(secondaryInk)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func eggButton(_ action: @escaping () -> Void) -> some View {
+        let control = Button(action: action) {
+            Label {
+                if openAccessibleEgg == nil {
+                    Text("打开彩蛋", bundle: .module)
+                } else {
+                    Text("连点爱心", bundle: .module)
+                }
+            } icon: {
+                Image(systemName: "heart")
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(buttonTint)
+        .controlSize(.large)
+        .accessibilityIdentifier("birthday-easter-egg")
+
+        if let openAccessibleEgg {
+            control
+                .focused($eggFocused)
+                .accessibilityFocused($accessibleEggFocused)
+                .help(Text("连点三下打开彩蛋", bundle: .module))
+                .accessibilityLabel(Text("打开彩蛋", bundle: .module))
+                .accessibilityAction(.default, openAccessibleEgg)
+                .onKeyPress(.space) {
+                    openAccessibleEgg()
+                    return .handled
+                }
+        } else {
+            control
         }
     }
 

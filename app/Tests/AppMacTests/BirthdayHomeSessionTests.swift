@@ -61,6 +61,38 @@ final class BirthdayHomeSessionTests: XCTestCase {
         XCTAssertNil(session.birthday)
     }
 
+    @MainActor
+    func testLocalEggAndPersistedCelebrationDay() throws {
+        let folder = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let domain = "org.iosps.tests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        let day = try LocalDay(isoDate: "2025-02-28")
+        let nextAnniversary = try LocalDay(isoDate: "2026-02-28")
+        let dayBefore = try LocalDay(isoDate: "2025-02-27")
+        let egg = folder.appendingPathComponent("egg.txt")
+        try Data(" 合成彩蛋 ".utf8).write(to: egg)
+        try writeManifest(#"{"schemaVersion":1,"birthday":"2000-02-29","easterEggPath":"egg.txt","memories":[]}"#, in: folder)
+
+        let first = BirthdayHomeSession(directory: folder, defaults: defaults)
+        XCTAssertEqual(first.easterEgg, "合成彩蛋")
+        XCTAssertFalse(first.shouldPresentAutomatically(on: dayBefore))
+        XCTAssertTrue(first.shouldPresentAutomatically(on: day))
+        first.recordAutomaticPresentation(on: day)
+
+        let reopened = BirthdayHomeSession(directory: folder, defaults: defaults)
+        XCTAssertFalse(reopened.shouldPresentAutomatically(on: day))
+        XCTAssertTrue(reopened.metrics(on: day).isBirthday)
+        XCTAssertTrue(reopened.shouldPresentAutomatically(on: nextAnniversary))
+
+        try FileManager.default.removeItem(at: egg)
+        reopened.reload()
+        XCTAssertNil(reopened.easterEgg)
+        XCTAssertFalse(reopened.reloadFailed)
+        XCTAssertTrue(reopened.metrics(on: day).isBirthday)
+    }
+
     private func writeManifest(_ text: String, in directory: URL) throws {
         try Data(text.utf8).write(to: directory.appendingPathComponent("memories.json"), options: .atomic)
     }

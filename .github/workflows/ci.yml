@@ -87,6 +87,14 @@ jobs:
             --test-id 'BirthdayHomeUITests/testAppStartsOnBirthdayHomeAndKeyboardOpensEasterEggEntry()'
           grep -F 'birthday-egg-control' "$output/manifest.json"
           grep -F 'birthday-home' "$output/manifest.json"
+          output="$RUNNER_TEMP/iosps-artifacts/birthday-celebration"
+          mkdir -p "$output"
+          for scenario in testBirthdayFirstLaunchSkipReopenAndReplay testEggRequiresThreeClicksAndKeyboardCanOpenIt; do
+            xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+              --output-path "$output/$scenario" --test-id "BirthdayCelebrationUITests/$scenario()"
+          done
+          grep -F 'birthday-celebration-static' "$output/testBirthdayFirstLaunchSkipReopenAndReplay/manifest.json"
+          grep -F 'birthday-easter-egg-open' "$output/testEggRequiresThreeClicksAndKeyboardCanOpenIt/manifest.json"
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -153,6 +161,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/snapshots/
             ${{ runner.temp }}/iosps-artifacts/license-window/
             ${{ runner.temp }}/iosps-artifacts/birthday-control/
+            ${{ runner.temp }}/iosps-artifacts/birthday-celebration/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/build-target.txt

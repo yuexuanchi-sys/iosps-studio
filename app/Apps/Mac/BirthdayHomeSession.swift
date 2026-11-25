@@ -5,34 +5,63 @@ import Observation
 @MainActor
 @Observable
 final class BirthdayHomeSession {
+    private static let celebrationDayKey = "lastAutomaticBirthdayCelebration"
     private let directory: URL
+    private let defaults: UserDefaults
+    private let fixedDay: LocalDay?
     private var manifest: GiftManifest?
     private(set) var wishes: String?
+    private(set) var easterEgg: String?
     private(set) var reloadFailed = false
 
     var birthday: LocalDay? { manifest?.birthday }
 
-    init(directory: URL) {
+    init(directory: URL, defaults: UserDefaults = .standard, fixedDay: LocalDay? = nil) {
         self.directory = directory
+        self.defaults = defaults
+        self.fixedDay = fixedDay
         reload()
+    }
+
+    func day(at date: Date = .now) -> LocalDay? {
+        fixedDay ?? (try? LocalDay(containing: date, timeZone: .autoupdatingCurrent))
     }
 
     func metrics(on today: LocalDay) -> GiftMetrics {
         GiftCalendar.metrics(on: today, birthday: birthday, metOn: manifest?.metOn)
     }
 
+    func shouldPresentAutomatically(on day: LocalDay) -> Bool {
+        guard metrics(on: day).isBirthday else { return false }
+        let previous = defaults.data(forKey: Self.celebrationDayKey)
+            .flatMap { try? JSONDecoder().decode(LocalDay.self, from: $0) }
+        return previous != day
+    }
+
+    func recordAutomaticPresentation(on day: LocalDay) {
+        if let value = try? JSONEncoder().encode(day) {
+            defaults.set(value, forKey: Self.celebrationDayKey)
+        }
+    }
+
     func reload() {
         do {
             let configuration = try loadManifest()
-            let message = try configuration?.wishesPath.map { path in
-                try String(contentsOf: checkedFile(path.value), encoding: .utf8)
-            }
+            let message = try configuration?.wishesPath.flatMap(readText)
+            let egg = configuration?.easterEggPath.flatMap { try? readText($0) }
             manifest = configuration
-            wishes = message?.trimmingCharacters(in: .whitespacesAndNewlines)
+            wishes = message
+            easterEgg = egg
             reloadFailed = false
         } catch {
             reloadFailed = true
         }
+    }
+
+    private func readText(_ path: GiftFilePath) throws -> String? {
+        let text = try String(contentsOf: checkedFile(path.value), encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
     }
 
     private func loadManifest() throws -> GiftManifest? {
