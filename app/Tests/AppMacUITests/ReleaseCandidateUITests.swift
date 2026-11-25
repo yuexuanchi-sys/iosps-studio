@@ -28,7 +28,6 @@ final class ReleaseCandidateUITests: XCTestCase {
     func testNativePickerCancellationPreservesResultsAndAllowsRetry() throws {
         continueAfterFailure = false
         let fixtures = fixtures(in: "picker-inputs")
-        let before = libraryFolders()
         let app = try openMedia()
 
         let panel = showPicker(in: app)
@@ -36,8 +35,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         namedElement("portrait.jpg", in: panel).click()
         panel.buttons["OKButton"].click()
         assertResult("portrait.jpg", "照片已导入", in: app)
-        let afterOne = libraryFolders().subtracting(before)
-        XCTAssertEqual(afterOne.count, 1)
+        assertRowCount(1, in: app)
         attach(app.windows["IOSPS"].screenshot(), named: "release-picker-first-import")
 
         _ = showPicker(in: app)
@@ -45,7 +43,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         XCTAssertTrue(panel.waitForNonExistence(timeout: 5))
         assertResult("portrait.jpg", "照片已导入", in: app)
-        XCTAssertEqual(libraryFolders().subtracting(before), afterOne)
+        assertRowCount(1, in: app)
         attach(app.windows["IOSPS"].screenshot(), named: "release-picker-cancel-keeps-result")
 
         let retry = showPicker(in: app)
@@ -56,7 +54,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         for (number, file) in fixtures.enumerated() {
             assertResult(file.lastPathComponent, number < 3 ? "照片已导入" : "视频已导入", in: app)
         }
-        try assertPublishedCopies(of: fixtures, excluding: before.union(afterOne))
+        assertRowCount(6, in: app)
         attach(app.windows["IOSPS"].screenshot(), named: "release-picker-five-formats")
 
         let toolbarButton = mediaToolbarButton(in: app)
@@ -65,6 +63,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         toolbarButton.click()
         assertResult("portrait.jpg", "照片已导入", in: app)
         assertResult("source-b.mp4", "视频已导入", in: app)
+        assertRowCount(6, in: app)
     }
 
     @MainActor
@@ -73,7 +72,6 @@ final class ReleaseCandidateUITests: XCTestCase {
         let sources = fixtures(in: "finder-inputs")
         let invalid = sources[0].deletingLastPathComponent().appending(path: "broken.png")
         let unsupported = invalid.deletingLastPathComponent().appending(path: "notes.txt")
-        let before = libraryFolders()
         let app = try openMedia()
 
         try dropFromFinder(sources + [invalid, unsupported], into: app, screenshot: "release-finder-selected-files")
@@ -82,7 +80,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         for (number, file) in sources.enumerated() {
             assertResult(file.lastPathComponent, number < 3 ? "照片已导入" : "视频已导入", in: app)
         }
-        try assertPublishedCopies(of: sources, excluding: before)
+        assertRowCount(7, in: app)
         app.activate()
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-mixed-results")
 
@@ -92,17 +90,16 @@ final class ReleaseCandidateUITests: XCTestCase {
         try FileManager.default.copyItem(at: sources[1], to: denied)
         try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: denied.path)
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: denied.path) }
-        let beforeDenied = libraryFolders()
         try dropFromFinder([denied], into: app, screenshot: nil)
         assertResult("denied.png", "无法读取文件", in: app)
-        XCTAssertEqual(libraryFolders(), beforeDenied)
+        assertRowCount(8, in: app)
         app.activate()
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-permission-error")
 
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: denied.path)
         try dropFromFinder([denied], into: app, screenshot: nil)
         assertResult("denied.png", "照片已导入", in: app)
-        try assertPublishedCopies(of: [denied], excluding: beforeDenied)
+        assertRowCount(9, in: app)
         app.activate()
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-permission-retry")
     }
@@ -121,6 +118,7 @@ final class ReleaseCandidateUITests: XCTestCase {
         let digest = try SHA256.hash(data: Data(contentsOf: executable))
         XCTAssertEqual(digest.map { String(format: "%02x", $0) }.joined(), releaseExecutableSHA)
         print("Running signed candidate: \(executable.path) SHA-256 \(releaseExecutableSHA)")
+        print("Test driver application support: \(URL.applicationSupportDirectory.path)")
         return app
     }
 
@@ -169,6 +167,12 @@ final class ReleaseCandidateUITests: XCTestCase {
     }
 
     @MainActor
+    private func assertRowCount(_ count: Int, in app: XCUIApplication) {
+        let list = app.descendants(matching: .outline).matching(identifier: "导入结果").firstMatch
+        XCTAssertEqual(list.descendants(matching: .outlineRow).count, count)
+    }
+
+    @MainActor
     private func dropFromFinder(_ sources: [URL], into app: XCUIApplication, screenshot: String?) throws {
         let source = try XCTUnwrap(sources.first)
         let title = source.deletingLastPathComponent().lastPathComponent
@@ -200,30 +204,6 @@ final class ReleaseCandidateUITests: XCTestCase {
         let directory = root.appending(path: name, directoryHint: .isDirectory)
         return ["portrait.jpg", "landscape.png", "landscape.heic", "source-a.mov", "source-b.mp4"]
             .map { directory.appending(path: $0) }
-    }
-
-    private func libraryFolders() -> Set<URL> {
-        let directory = FileManager.default.homeDirectoryForCurrentUser
-            .appending(path: "Library/Application Support/org.iosps.birthday/Media", directoryHint: .isDirectory)
-        let contents = (try? FileManager.default.contentsOfDirectory(at: directory,
-                                                                    includingPropertiesForKeys: nil,
-                                                                    options: .skipsHiddenFiles)) ?? []
-        return Set(contents.filter { UUID(uuidString: $0.lastPathComponent) != nil })
-    }
-
-    private func assertPublishedCopies(of sources: [URL], excluding previous: Set<URL>) throws {
-        let newFolders = libraryFolders().subtracting(previous)
-        XCTAssertEqual(newFolders.count, sources.count)
-        for source in sources {
-            let data = try Data(contentsOf: source)
-            let original = "original." + source.pathExtension
-            let matching = newFolders.filter { folder in
-                (try? Data(contentsOf: folder.appending(path: original))) == data
-            }
-            let folder = try XCTUnwrap(matching.first)
-            XCTAssertEqual(matching.count, 1)
-            XCTAssertTrue(FileManager.default.fileExists(atPath: folder.appending(path: "preview.png").path))
-        }
     }
 
     private func attach(_ screenshot: XCUIScreenshot, named name: String) {

@@ -93,6 +93,43 @@ jobs:
             xcrun xcresulttool get test-results summary --path "$result" > "$evidence/test-summary.json"
             xcrun xcresulttool export attachments --path "$result" --output-path "$evidence/attachments"
           fi
+      - name: Read back published synthetic media
+        if: always()
+        run: |
+          evidence="$RUNNER_TEMP/iosps-self-test-evidence"
+          if [[ -f "$evidence/test-summary.json" ]]; then
+            python3 - "$evidence/test-summary.json" <<'PY' | tee "$evidence/media-readback.txt"
+          from collections import Counter
+          from hashlib import sha256
+          from pathlib import Path
+          import json
+          import sys
+
+          summary = json.loads(Path(sys.argv[1]).read_text())
+          media = Path.home() / 'Library/Application Support/org.iosps.birthday/Media'
+          print(f'Runner media directory: {media}, exists: {media.is_dir()}')
+          inputs = Path('/tmp/iosps-ci-self-test/picker-inputs')
+          expected = Counter()
+          for file in sorted(inputs.iterdir()):
+              digest = sha256(file.read_bytes()).hexdigest()
+              expected[file.suffix, digest] += 3 if file.name in {'portrait.jpg', 'landscape.png'} else 2
+          seen = Counter()
+          for directory in sorted(media.iterdir()) if media.is_dir() else []:
+              if directory.name.startswith('.'):
+                  continue
+              originals = list(directory.glob('original.*'))
+              assert len(originals) == 1, directory
+              original = originals[0]
+              preview = directory / 'preview.png'
+              assert preview.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'), directory
+              seen[original.suffix, sha256(original.read_bytes()).hexdigest()] += 1
+          print(f'Published copies with PNG previews: {sum(seen.values())}; expected on full pass: {sum(expected.values())}')
+          print(f'Published counts by type: {sorted((extension, count) for (extension, _), count in seen.items())}')
+          if summary['result'] == 'Passed':
+              assert seen == expected, (seen, expected)
+              print('All twelve published originals match their synthetic input bytes.')
+          PY
+          fi
       - name: Upload self-test evidence
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
