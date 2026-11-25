@@ -2,6 +2,11 @@ name: macOS CI
 
 on:
   workflow_dispatch:
+    inputs:
+      license_copy_only:
+        description: Verify copying license text from the signed Release
+        type: boolean
+        default: false
 
 permissions:
   actions: read
@@ -54,6 +59,7 @@ jobs:
             "$bundle_dir/IOSPS.app/Contents/MacOS/IOSPS" | shasum -a 256 -c - |
             tee "$evidence/candidate-executable.txt"
       - name: Prepare shared synthetic media
+        if: ${{ !inputs.license_copy_only }}
         run: |
           fixtures="app/Tests/ReleaseCandidateFixtures"
           test_dir="/tmp/iosps-ci-self-test"
@@ -79,13 +85,15 @@ jobs:
           test -x "$executable"
           dirname "$executable" >> "$GITHUB_PATH"
       - name: Test signed Release through native UI
+        if: ${{ !inputs.license_copy_only }}
         working-directory: app
         run: |
           xcodegen generate
           xcodebuild -project IOSPS.xcodeproj -scheme AppMac -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/iosps-ui-build" \
             -resultBundlePath "$RUNNER_TEMP/iosps-ui-tests.xcresult" \
-            -parallel-testing-enabled NO -only-testing:AppMacUITests/ReleaseCandidateUITests test 2>&1 |
+            -parallel-testing-enabled NO -only-testing:AppMacUITests/ReleaseCandidateUITests \
+            -skip-testing:AppMacUITests/ReleaseCandidateUITests/testCopiesDisplayedLicenseText test 2>&1 |
             while IFS= read -r line; do
               printf '%s\n' "$line"
               if [[ "$line" == IOSPS_SELF_TEST_RESTORE_PERMISSION ]]; then
@@ -93,6 +101,16 @@ jobs:
                 echo 'Restored read access for the same synthetic PNG.'
               fi
             done
+      - name: Copy license text from signed Release
+        if: ${{ inputs.license_copy_only }}
+        working-directory: app
+        run: |
+          xcodegen generate
+          xcodebuild -project IOSPS.xcodeproj -scheme AppMac -destination 'platform=macOS' \
+            -derivedDataPath "$RUNNER_TEMP/iosps-ui-build" \
+            -resultBundlePath "$RUNNER_TEMP/iosps-ui-tests.xcresult" \
+            -parallel-testing-enabled NO \
+            -only-testing:AppMacUITests/ReleaseCandidateUITests/testCopiesDisplayedLicenseText test
       - name: Export native UI evidence
         if: always()
         run: |
@@ -103,7 +121,7 @@ jobs:
             xcrun xcresulttool export attachments --path "$result" --output-path "$evidence/attachments"
           fi
       - name: Read back published synthetic media
-        if: always()
+        if: ${{ always() && !inputs.license_copy_only }}
         run: |
           evidence="$RUNNER_TEMP/iosps-self-test-evidence"
           if [[ -f "$evidence/test-summary.json" ]]; then

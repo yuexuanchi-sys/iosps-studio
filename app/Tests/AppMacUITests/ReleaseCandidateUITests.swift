@@ -25,6 +25,47 @@ final class ReleaseCandidateUITests: XCTestCase {
     }
 
     @MainActor
+    func testCopiesDisplayedLicenseText() throws {
+        continueAfterFailure = false
+        let app = try launchSignedRelease()
+        let menu = app.menuBars.menuBarItems["IOSPS"]
+        menu.click()
+        menu.menuItems["关于 IOSPS"].click()
+        let about = app.windows["关于 IOSPS"]
+        XCTAssertTrue(about.waitForExistence(timeout: 5))
+        let picker = about.popUpButtons["license-picker"]
+        picker.click()
+        app.typeKey(.downArrow, modifierFlags: [])
+        app.typeKey(.return, modifierFlags: [])
+        let text = about.staticTexts["license-text"]
+        let selectedLicense = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value CONTAINS %@", "GitHub, Inc. and contributors"),
+            object: text
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [selectedLicense], timeout: 5), .completed)
+
+        // The bundled checkout notice begins with a blank line followed by its MIT heading.
+        let scrollView = about.scrollViews.firstMatch
+        XCTAssertTrue(scrollView.exists)
+        let origin = scrollView.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))
+        let start = origin.withOffset(CGVector(dx: 1, dy: 26))
+        let end = origin.withOffset(CGVector(dx: 180, dy: 26))
+        start.click(forDuration: 0.1, thenDragTo: end)
+        attach(about.screenshot(), named: "release-license-text-selected")
+
+        let pasteboard = NSPasteboard.general
+        let beforeCopy = pasteboard.changeCount
+        app.typeKey("c", modifierFlags: .command)
+        XCTAssertNotEqual(pasteboard.changeCount, beforeCopy)
+        let copied = try XCTUnwrap(pasteboard.string(forType: .string))
+        let result = XCTAttachment(string: copied)
+        result.name = "release-copied-license-text"
+        result.lifetime = .keepAlways
+        add(result)
+        XCTAssertEqual(copied.trimmingCharacters(in: .whitespacesAndNewlines), "The MIT License (MIT)")
+    }
+
+    @MainActor
     func testNativePickerCancellationPreservesResultsAndAllowsRetry() throws {
         continueAfterFailure = false
         let fixtures = fixtures(in: "picker-inputs")
