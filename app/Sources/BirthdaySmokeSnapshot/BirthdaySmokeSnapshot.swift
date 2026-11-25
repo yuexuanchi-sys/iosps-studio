@@ -28,6 +28,10 @@ struct BirthdaySmokeSnapshot {
                            size: CGSize(width: 1280, height: 800), scheme: variant.scheme,
                            enlargedText: variant.enlargedText)
             }
+            try render(to: directory.appendingPathComponent("birthday-narrow.png"),
+                       size: CGSize(width: 430, height: 720), scheme: .light, enlargedText: true,
+                       wishes: "愿这一年有更多好天气，也有更多值得记住的小事。记得留些时间去喜欢的地方，" +
+                           "见想见的人，把日常里那些闪闪发亮的瞬间收进你的相册。生日快乐！")
         } else if arguments.count == 1, let path = arguments.first {
             try render(to: URL(fileURLWithPath: path), size: CGSize(width: 720, height: 480),
                        scheme: .light, enlargedText: false)
@@ -37,13 +41,14 @@ struct BirthdaySmokeSnapshot {
     }
 
     @MainActor
-    private static func render(to output: URL, size: CGSize, scheme: ColorScheme, enlargedText: Bool) throws {
+    private static func render(to output: URL, size: CGSize, scheme: ColorScheme, enlargedText: Bool,
+                               wishes: String = "愿这一年有更多好天气，也有更多值得记住的小事。") throws {
         let birthday = try LocalDay(isoDate: "2000-02-29")
         let metOn = try LocalDay(isoDate: "2025-02-27")
         let today = try LocalDay(isoDate: "2025-02-28")
         let view = BirthdayGreetingView(
             enlargedText: enlargedText,
-            wishes: "愿这一年有更多好天气，也有更多值得记住的小事。",
+            wishes: wishes,
             birthday: birthday,
             metrics: GiftCalendar.metrics(on: today, birthday: birthday, metOn: metOn),
             onEasterEgg: {}

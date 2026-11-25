@@ -86,6 +86,7 @@ jobs:
             --output-path "$output" \
             --test-id 'BirthdayHomeUITests/testAppStartsOnBirthdayHomeAndKeyboardOpensEasterEggEntry()'
           grep -F 'birthday-egg-control' "$output/manifest.json"
+          grep -F 'birthday-home' "$output/manifest.json"
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -99,9 +100,12 @@ jobs:
           for variant in light dark large; do
             sips -g pixelWidth -g pixelHeight "$output/snapshots/birthday-$variant.png" | tee -a "$output/snapshot-size.txt"
           done
+          sips -g pixelWidth -g pixelHeight "$output/snapshots/birthday-narrow.png" | tee -a "$output/snapshot-size.txt"
           test "$(grep -c 'pixelWidth: 1280' "$output/snapshot-size.txt")" = 3
           test "$(grep -c 'pixelHeight: 800' "$output/snapshot-size.txt")" = 3
-          test "$(shasum -a 256 "$output"/snapshots/*.png | awk '{ print $1 }' | sort -u | wc -l | tr -d ' ')" = 3
+          grep -F 'pixelWidth: 430' "$output/snapshot-size.txt"
+          grep -F 'pixelHeight: 720' "$output/snapshot-size.txt"
+          test "$(shasum -a 256 "$output"/snapshots/*.png | awk '{ print $1 }' | sort -u | wc -l | tr -d ' ')" = 4
           test "$(lipo -archs "$app/Contents/MacOS/IOSPS")" = arm64
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dv --verbose=4 "$app" 2>&1 | tee "$output/signature.txt"
