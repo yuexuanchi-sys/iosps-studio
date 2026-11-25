@@ -124,18 +124,20 @@ private struct MainWindow: View {
             .frame(width: 365)
         }
         .toolbar {
-            Button {
-                eggTrigger = EasterEggTrigger()
-                showsMedia.toggle()
-            } label: {
-                if showsMedia {
-                    Label("返回生日主页", systemImage: "house")
-                } else {
-                    Label("导入素材", systemImage: "photo.on.rectangle")
+            ToolbarItem {
+                Button {
+                    eggTrigger = EasterEggTrigger()
+                    showsMedia.toggle()
+                } label: {
+                    if showsMedia {
+                        Label("返回生日主页", systemImage: "house")
+                    } else {
+                        Label("导入素材", systemImage: "photo.on.rectangle")
+                    }
                 }
+                .accessibilityIdentifier("shared-media-entry")
+                .help(showsMedia ? Text("返回生日主页") : Text("导入素材"))
             }
-            .accessibilityIdentifier("shared-media-entry")
-            .help(showsMedia ? Text("返回生日主页") : Text("导入素材"))
         }
     }
 
