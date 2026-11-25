@@ -154,6 +154,7 @@ public struct BirthdayGreetingView: View {
 
         if let openAccessibleEgg {
             control
+                .focusable()
                 .focused($eggFocused)
                 .accessibilityFocused($accessibleEggFocused)
                 .help(Text("连点三下打开彩蛋", bundle: .module))
