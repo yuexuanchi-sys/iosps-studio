@@ -86,28 +86,31 @@ private struct MainWindow: View {
             .toolbar { mediaToolbar }
     }
 
+    @ViewBuilder
     private var page: some View {
-        Group {
-            if showsMedia {
-                MediaImportView(session: session)
-            } else {
-                TimelineView(.periodic(from: .now, by: 60)) { context in
-                    let today = birthday.day(at: context.date)
-                    let metrics = today.map { birthday.metrics(on: $0) }
-                    BirthdayGreetingView(
-                        wishes: birthday.wishes,
-                        birthday: birthday.birthday,
-                        metrics: metrics,
-                        configurationFailed: birthday.reloadFailed,
-                        onEasterEgg: countEggTap,
-                        openAccessibleEgg: openEasterEgg,
-                        replayCelebration: metrics?.isBirthday == true ? replay : nil,
-                        eggFocusRequest: eggFocusRequest,
-                        titleFocusRequest: titleFocusRequest
-                    )
-                }
+        if showsMedia {
+            MediaImportView(session: session)
+        } else {
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                greeting(at: context.date)
             }
         }
+    }
+
+    private func greeting(at date: Date) -> BirthdayGreetingView {
+        let today = birthday.day(at: date)
+        let metrics = today.map { birthday.metrics(on: $0) }
+        return BirthdayGreetingView(
+            wishes: birthday.wishes,
+            birthday: birthday.birthday,
+            metrics: metrics,
+            configurationFailed: birthday.reloadFailed,
+            onEasterEgg: countEggTap,
+            openAccessibleEgg: openEasterEgg,
+            replayCelebration: replay,
+            eggFocusRequest: eggFocusRequest,
+            titleFocusRequest: titleFocusRequest
+        )
     }
 
     private var eggSheet: some View {

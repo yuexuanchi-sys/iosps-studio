@@ -120,7 +120,7 @@ public struct BirthdayGreetingView: View {
             if let onEasterEgg {
                 eggButton(onEasterEgg)
             }
-            if let replayCelebration {
+            if let replayCelebration, metrics?.isBirthday == true {
                 Button(action: replayCelebration) {
                     Text("重播生日祝福", bundle: .module)
                 }
