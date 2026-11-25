@@ -57,11 +57,13 @@ jobs:
         run: |
           fixtures="app/Tests/ReleaseCandidateFixtures"
           test_dir="/tmp/iosps-ci-self-test"
-          mkdir "$test_dir/picker-inputs" "$test_dir/finder-inputs"
+          mkdir "$test_dir/picker-inputs" "$test_dir/finder-inputs" "$test_dir/permission-input"
           cp "$fixtures/portrait.jpg" "$fixtures/landscape.png" "$fixtures/source-a.mov" "$fixtures/source-b.mp4" \
             "$test_dir/picker-inputs/"
           sips -s format heic "$test_dir/picker-inputs/landscape.png" --out "$test_dir/picker-inputs/landscape.heic"
           cp "$test_dir/picker-inputs/"* "$fixtures/broken.png" "$fixtures/notes.txt" "$test_dir/finder-inputs/"
+          cp "$fixtures/landscape.png" "$test_dir/permission-input/denied.png"
+          chmod 000 "$test_dir/permission-input/denied.png"
       - name: Fetch pinned XcodeGen
         env:
           XCODEGEN_VERSION: "2.48.0"
@@ -83,7 +85,14 @@ jobs:
           xcodebuild -project IOSPS.xcodeproj -scheme AppMac -destination 'platform=macOS' \
             -derivedDataPath "$RUNNER_TEMP/iosps-ui-build" \
             -resultBundlePath "$RUNNER_TEMP/iosps-ui-tests.xcresult" \
-            -parallel-testing-enabled NO -only-testing:AppMacUITests/ReleaseCandidateUITests test
+            -parallel-testing-enabled NO -only-testing:AppMacUITests/ReleaseCandidateUITests test 2>&1 |
+            while IFS= read -r line; do
+              printf '%s\n' "$line"
+              if [[ "$line" == IOSPS_SELF_TEST_RESTORE_PERMISSION ]]; then
+                chmod 600 /tmp/iosps-ci-self-test/permission-input/denied.png
+                echo 'Restored read access for the same synthetic PNG.'
+              fi
+            done
       - name: Export native UI evidence
         if: always()
         run: |
@@ -125,7 +134,7 @@ jobs:
               seen[original.suffix, sha256(original.read_bytes()).hexdigest()] += 1
           print(f'Published copies with PNG previews: {sum(seen.values())}; expected on full pass: {sum(expected.values())}')
           print(f'Published counts by type: {sorted((extension, count) for (extension, _), count in seen.items())}')
-          if summary['result'] == 'Passed':
+          if summary['passedTests'] == 3 and summary['failedTests'] == 0:
               assert seen == expected, (seen, expected)
               print('All twelve published originals match their synthetic input bytes.')
           PY

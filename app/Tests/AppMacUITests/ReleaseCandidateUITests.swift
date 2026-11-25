@@ -84,19 +84,19 @@ final class ReleaseCandidateUITests: XCTestCase {
         app.activate()
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-mixed-results")
 
-        let permissionDirectory = root.appending(path: "permission-input", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: permissionDirectory, withIntermediateDirectories: false)
-        let denied = permissionDirectory.appending(path: "denied.png")
-        try FileManager.default.copyItem(at: sources[1], to: denied)
-        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: denied.path)
-        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: denied.path) }
+        let denied = root.appending(path: "permission-input/denied.png")
         try dropFromFinder([denied], into: app, screenshot: nil)
         assertResult("denied.png", "无法读取文件", in: app)
         assertRowCount(8, in: app)
         app.activate()
         attach(app.windows["IOSPS"].screenshot(), named: "release-drop-permission-error")
 
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: denied.path)
+        FileHandle.standardOutput.write(Data("IOSPS_SELF_TEST_RESTORE_PERMISSION\n".utf8))
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            let attributes = try? FileManager.default.attributesOfItem(atPath: denied.path)
+            return (attributes?[.posixPermissions] as? NSNumber)?.intValue == 0o600
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 15), .completed)
         try dropFromFinder([denied], into: app, screenshot: nil)
         assertResult("denied.png", "照片已导入", in: app)
         assertRowCount(9, in: app)
