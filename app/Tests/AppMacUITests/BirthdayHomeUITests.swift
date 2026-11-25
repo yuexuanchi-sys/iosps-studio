@@ -6,6 +6,13 @@ final class BirthdayHomeUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10))
+        let wishes = app.staticTexts["birthday-wishes"]
+        XCTAssertTrue(wishes.exists, "The birthday card must show a wish even when personal content is missing.")
+        XCTAssertTrue(wishes.isHittable)
+        let home = XCTAttachment(screenshot: app.windows["IOSPS"].screenshot())
+        home.name = "birthday-home"
+        home.lifetime = .keepAlways
+        add(home)
         let egg = app.buttons["birthday-easter-egg"]
         XCTAssertTrue(egg.exists && egg.isEnabled && egg.isHittable)
         let control = XCTAttachment(screenshot: egg.screenshot())
