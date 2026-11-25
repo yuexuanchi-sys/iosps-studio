@@ -19,14 +19,17 @@ final class BirthdayCelebrationUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["birthday-title"].exists)
 
         app.terminate()
+        app.launchEnvironment["IOSPS_TEST_GIFT_REDUCE_MOTION"] = "0"
         app.launch()
         let replay = app.buttons["birthday-celebration-replay"]
+        let animatedClose = app.buttons["birthday-celebration-close"]
         XCTAssertTrue(replay.waitForExistence(timeout: 10))
-        XCTAssertFalse(skip.waitForExistence(timeout: 1))
+        XCTAssertFalse(animatedClose.waitForExistence(timeout: 1))
         replay.click()
-        XCTAssertTrue(skip.waitForExistence(timeout: 5))
+        XCTAssertTrue(animatedClose.waitForExistence(timeout: 5))
+        capture(celebration, named: "birthday-celebration-replay")
         app.typeKey(.escape, modifierFlags: [])
-        XCTAssertTrue(skip.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(animatedClose.waitForNonExistence(timeout: 5))
         XCTAssertTrue(replay.isHittable)
     }
 
@@ -52,6 +55,10 @@ final class BirthdayCelebrationUITests: XCTestCase {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(message.waitForNonExistence(timeout: 5))
         XCTAssertTrue(egg.isHittable)
+        app.typeKey(" ", modifierFlags: [])
+        XCTAssertTrue(message.waitForExistence(timeout: 5), "Space should activate the restored focus.")
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(message.waitForNonExistence(timeout: 5))
         app.typeKey("e", modifierFlags: [.command, .shift])
         XCTAssertTrue(message.waitForExistence(timeout: 5))
     }
