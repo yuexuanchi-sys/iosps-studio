@@ -26,13 +26,15 @@ struct PhotoMovieView: View {
                 previewAndTemplates
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 photoRail
-                    .frame(minWidth: 220, idealWidth: 250, maxWidth: 280)
+                    .frame(minWidth: 224, idealWidth: 248, maxWidth: 276)
                     .disabled(busy)
             }
             feedback
         }
-        .padding(16)
-        .frame(minWidth: 680, minHeight: 440)
+        .padding(.horizontal, 18)
+        .padding(.top, 14)
+        .padding(.bottom, 16)
+        .frame(minWidth: 740, minHeight: 480)
         .onChange(of: session.photos.count) { clampSelection() }
         .onDisappear(perform: session.pausePreview)
         .fileImporter(
@@ -52,7 +54,7 @@ struct PhotoMovieView: View {
             Spacer()
             Button("添加照片…") { presentPicker(.photos) }
                 .accessibilityIdentifier("photo-movie-add-photos")
-            Button(session.music == nil ? "选择配乐…" : "更换配乐…") { presentPicker(.music) }
+            Button("自定义配乐…") { presentPicker(.music) }
                 .accessibilityIdentifier("photo-movie-select-music")
             Button("导出 MP4…", action: chooseExportDestination)
                 .buttonStyle(.borderedProminent)
@@ -92,7 +94,7 @@ struct PhotoMovieView: View {
                     .accessibilityHidden(true)
                 }
             }
-            .frame(minHeight: 168, maxHeight: .infinity)
+            .frame(minHeight: 156, maxHeight: .infinity)
 
             HStack(spacing: 8) {
                 Button("生成并播放预览") { session.preview() }
@@ -113,73 +115,117 @@ struct PhotoMovieView: View {
             templateStrip
                 .disabled(busy)
 
-            if let music = session.music {
-                HStack(spacing: 8) {
-                    Image(systemName: "music.note")
-                        .accessibilityHidden(true)
-                    Text(verbatim: music.name)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .accessibilityIdentifier("photo-movie-music-name")
-                    Spacer()
-                    Button("移除配乐", action: session.clearMusic)
-                        .buttonStyle(.borderless)
-                        .disabled(busy)
-                        .accessibilityIdentifier("photo-movie-clear-music")
-                }
-                .font(.subheadline)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+            HStack(spacing: 8) {
+                Text("片头祝福")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    "选填，留空使用模板默认文案",
+                    text: Binding(
+                        get: { session.customOpeningCaption },
+                        set: { session.setOpeningCaption($0) }
+                    )
+                )
+                .textFieldStyle(.roundedBorder)
+                .disabled(busy)
+                .accessibilityIdentifier("photo-movie-opening-caption")
             }
+
+            musicBar
         }
     }
 
     private var templateStrip: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("短片模板")
-                .font(.headline)
-            HStack(spacing: 8) {
-                ForEach(session.templates.indices, id: \.self) { index in
-                    let template = session.templates[index]
-                    let selected = template.id == session.selectedTemplateID
-                    Button {
-                        session.selectTemplate(id: template.id)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 4) {
-                                Text(verbatim: template.name)
-                                    .font(.subheadline.weight(.medium))
-                                    .lineLimit(1)
-                                if index == 0 {
-                                    Text("推荐")
-                                        .font(.caption2)
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(Color.accentColor.opacity(0.2), in: Capsule())
+            HStack {
+                Text("短片模板")
+                    .font(.headline)
+                Spacer()
+                Text("共 \(session.catalog.count) 套内置模板")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            ScrollView(.horizontal, showsIndicators: true) {
+                HStack(spacing: 8) {
+                    ForEach(session.catalog.indices, id: \.self) { index in
+                        let descriptor = session.catalog[index]
+                        let template = descriptor.template
+                        let selected = template.id == session.selectedTemplateID
+                        Button {
+                            session.selectTemplate(id: template.id)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 4) {
+                                    Text(verbatim: template.name)
+                                        .font(.subheadline.weight(.medium))
+                                        .lineLimit(1)
+                                    if descriptor.isRecommended {
+                                        Text("推荐")
+                                            .font(.caption2)
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(Color.accentColor.opacity(0.2), in: Capsule())
+                                    }
+                                    Spacer(minLength: 0)
+                                    if selected {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.accentColor)
+                                            .accessibilityHidden(true)
+                                    }
                                 }
+                                Text(verbatim: descriptor.subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
-                            Text("\(template.scenes.count) 个镜头样式")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .frame(width: 136, alignment: .leading)
+                            .background(
+                                selected ? Color.accentColor.opacity(0.16) : Color(nsColor: .controlBackgroundColor),
+                                in: RoundedRectangle(cornerRadius: 8)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .strokeBorder(selected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: 1)
+                            }
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            selected ? Color.accentColor.opacity(0.16) : Color(nsColor: .controlBackgroundColor),
-                            in: RoundedRectangle(cornerRadius: 8)
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(selected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: 1)
-                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("photo-movie-template-\(template.id)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("photo-movie-template-\(template.id)")
                 }
+                .padding(.vertical, 2)
             }
         }
+    }
+
+    private var musicBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: session.musicMode == .muted ? "speaker.slash" : "music.note")
+                .accessibilityHidden(true)
+            Text(verbatim: session.activeMusicDisplayName)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .accessibilityIdentifier("photo-movie-music-name")
+            Spacer()
+            if session.musicMode != .templateDefault {
+                Button("恢复模板配乐", action: session.useTemplateMusic)
+                    .buttonStyle(.borderless)
+                    .disabled(busy)
+                    .accessibilityIdentifier("photo-movie-use-template-music")
+            }
+            if session.musicMode != .muted {
+                Button("静音", action: session.muteMusic)
+                    .buttonStyle(.borderless)
+                    .disabled(busy)
+                    .accessibilityIdentifier("photo-movie-mute-music")
+            }
+        }
+        .font(.subheadline)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var photoRail: some View {
@@ -305,7 +351,7 @@ struct PhotoMovieView: View {
                     }
                 }
             }
-            .frame(maxHeight: 56)
+            .frame(maxHeight: 52)
             .accessibilityIdentifier("photo-movie-import-issues")
         }
     }

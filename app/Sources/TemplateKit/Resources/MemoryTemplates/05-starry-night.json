@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "id": "starry-night",
+  "name": "星夜私语",
+  "scenes": [
+    {
+      "frames": 60,
+      "transitionFrames": 18,
+      "motion": "zoomIn",
+      "caption": "晚风温柔"
+    },
+    {
+      "frames": 60,
+      "transitionFrames": 18,
+      "motion": "zoomOut",
+      "caption": "星河长明"
+    }
+  ],
+  "music": {
+    "assetID": "starry-nocturne",
+    "startFrame": 0,
+    "frames": 420
+  }
+}

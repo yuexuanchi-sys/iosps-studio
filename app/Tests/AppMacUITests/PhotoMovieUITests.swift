@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -18,12 +19,10 @@ final class PhotoMovieUITests: XCTestCase {
         let photoA = inputs.appendingPathComponent("photo-a.jpg")
         let photoB = inputs.appendingPathComponent("photo-b.jpg")
         let corrupt = inputs.appendingPathComponent("corrupt.jpg")
-        let soundtrack = inputs.appendingPathComponent("soundtrack.wav")
         try writePhoto(to: photoA, background: (0.82, 0.14, 0.16), stripe: (0.14, 0.72, 0.25))
         try writePhoto(to: photoB, background: (0.12, 0.24, 0.82), stripe: (0.92, 0.78, 0.14))
         try Data("Synthetic unreadable photo".utf8).write(to: corrupt)
-        try writeStereoWave(to: soundtrack, frequency: 520, seconds: 3.0)
-        let originalBytes = try [photoA, photoB, soundtrack].map { try Data(contentsOf: $0) }
+        let originalBytes = try [photoA, photoB].map { try Data(contentsOf: $0) }
 
         let app = XCUIApplication()
         app.launchEnvironment["IOSPS_TEST_VIDEO_DIRECTORY"] = root.appendingPathComponent("Local").path
@@ -39,6 +38,9 @@ final class PhotoMovieUITests: XCTestCase {
         let secondPhoto = app.buttons["photo-movie-photo-1"]
         let exportButton = app.buttons["photo-movie-export"]
         XCTAssertFalse(exportButton.isEnabled)
+        XCTAssertTrue(app.staticTexts["共 8 套内置模板"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["photo-movie-template-warm-keepsake"].exists)
+        XCTAssertTrue(app.buttons["photo-movie-template-birthday-candle"].exists)
 
         // Cancel picker before adding any photo keeps empty state intact.
         app.buttons["photo-movie-add-photos"].click()
@@ -69,24 +71,30 @@ final class PhotoMovieUITests: XCTestCase {
         XCTAssertTrue(picker.waitForNonExistence(timeout: 15))
         XCTAssertTrue(firstPhoto.exists && secondPhoto.exists)
 
-        // Reorder and switch template while keeping selected photos.
+        // Reorder and switch built-in template while keeping selected photos; bundled music updates automatically.
         secondPhoto.click()
         app.buttons["photo-movie-move-up"].click()
         XCTAssertTrue(firstPhoto.label.contains("photo-b.jpg"), firstPhoto.debugDescription)
         XCTAssertTrue(secondPhoto.label.contains("photo-a.jpg"), secondPhoto.debugDescription)
 
-        let breezyTemplate = app.buttons["photo-movie-template-breezy-album"]
-        XCTAssertTrue(breezyTemplate.waitForExistence(timeout: 5))
-        breezyTemplate.click()
+        let musicName = app.staticTexts["photo-movie-music-name"]
+        XCTAssertTrue(musicName.waitForExistence(timeout: 5))
+        XCTAssertTrue(textContains("温暖钢琴", in: musicName), musicName.debugDescription)
+
+        let candleTemplate = app.buttons["photo-movie-template-birthday-candle"]
+        XCTAssertTrue(candleTemplate.waitForExistence(timeout: 5))
+        candleTemplate.click()
         XCTAssertTrue(firstPhoto.label.contains("photo-b.jpg"))
         XCTAssertTrue(secondPhoto.label.contains("photo-a.jpg"))
+        XCTAssertTrue(textContains("晶莹八音盒", in: musicName), musicName.debugDescription)
 
-        // Select soundtrack and render in-place preview via AppKit AVPlayerView.
-        app.buttons["photo-movie-select-music"].click()
-        choose(soundtrack, in: app)
-        let musicName = app.staticTexts["photo-movie-music-name"]
-        XCTAssertTrue(musicName.waitForExistence(timeout: 10))
-        XCTAssertTrue(musicName.label.contains("soundtrack.wav") || (musicName.value as? String)?.contains("soundtrack.wav") == true)
+        // Customize opening caption via pasteboard (keyboard-layout independent) and render in-place preview.
+        let captionField = app.textFields["photo-movie-opening-caption"]
+        XCTAssertTrue(captionField.waitForExistence(timeout: 5))
+        captionField.click()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString("祝你生日快乐", forType: .string)
+        app.typeKey("v", modifierFlags: .command)
 
         let previewPrompt = app.staticTexts["点击「生成并播放预览」查看短片效果"]
         XCTAssertTrue(previewPrompt.exists)
@@ -98,16 +106,16 @@ final class PhotoMovieUITests: XCTestCase {
         let window = app.windows["IOSPS"]
         attach(XCTAttachment(screenshot: window.screenshot()), named: "photo-movie-preview")
 
-        // Leaving the page stops playback and returning preserves photos, order, and music.
+        // Leaving the page stops playback and returning preserves photos, order, and bundled soundtrack.
         let entry = window.toolbars.buttons.matching(identifier: "photo-movie-entry").firstMatch
         entry.click()
         XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10))
         entry.click()
         XCTAssertTrue(firstPhoto.waitForExistence(timeout: 10))
         XCTAssertTrue(firstPhoto.label.contains("photo-b.jpg"))
-        XCTAssertTrue(musicName.exists)
+        XCTAssertTrue(textContains("晶莹八音盒", in: musicName))
 
-        // Export 1080p MP4 through NSSavePanel and verify clean atomic output.
+        // Export 1080p MP4 with bundled soundtrack through NSSavePanel and verify clean atomic output.
         let movie = outputs.appendingPathComponent("memory-movie.mp4")
         exportButton.click()
         save(movie, in: app)
@@ -117,7 +125,7 @@ final class PhotoMovieUITests: XCTestCase {
         )).firstMatch
         XCTAssertTrue(exported.waitForExistence(timeout: 30))
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: outputs.path), ["memory-movie.mp4"])
-        XCTAssertEqual(try [photoA, photoB, soundtrack].map { try Data(contentsOf: $0) }, originalBytes)
+        XCTAssertEqual(try [photoA, photoB].map { try Data(contentsOf: $0) }, originalBytes)
 
         attach(XCTAttachment(screenshot: window.screenshot()), named: "photo-movie-exported-window")
         attach(XCTAttachment(data: try Data(contentsOf: movie), uniformTypeIdentifier: UTType.mpeg4Movie.identifier),
@@ -138,6 +146,11 @@ final class PhotoMovieUITests: XCTestCase {
         XCTAssertTrue(entry.waitForExistence(timeout: 5), "The main window toolbar should provide a photo movie entry.")
         entry.click()
         XCTAssertTrue(app.buttons["photo-movie-add-photos"].waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    private func textContains(_ expected: String, in element: XCUIElement) -> Bool {
+        element.label.contains(expected) || (element.value as? String)?.contains(expected) == true
     }
 
     @MainActor
@@ -206,48 +219,5 @@ final class PhotoMovieUITests: XCTestCase {
         let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL, UTType.jpeg.identifier as CFString, 1, nil))
         CGImageDestinationAddImage(destination, image, nil)
         XCTAssertTrue(CGImageDestinationFinalize(destination))
-    }
-
-    private func writeStereoWave(to url: URL, frequency: Double, seconds: Double) throws {
-        let sampleRate = 44_100
-        let channels = 2
-        let bitsPerSample = 16
-        let count = Int((seconds * Double(sampleRate)).rounded())
-        var pcm = Data()
-        pcm.reserveCapacity(count * channels * 2)
-        for index in 0..<count {
-            let phase = 2.0 * Double.pi * frequency * Double(index) / Double(sampleRate)
-            let sample = Int16((sin(phase) * 0.75 * Double(Int16.max)).rounded())
-            var little = sample.littleEndian
-            withUnsafeBytes(of: &little) { bytes in
-                pcm.append(contentsOf: bytes)
-                pcm.append(contentsOf: bytes)
-            }
-        }
-        let byteRate = UInt32(sampleRate * channels * bitsPerSample / 8)
-        let blockAlign = UInt16(channels * bitsPerSample / 8)
-        let dataSize = UInt32(pcm.count)
-        let chunkSize = UInt32(36 + pcm.count)
-        var wav = Data()
-        wav.append(contentsOf: "RIFF".utf8)
-        appendLittleEndian(chunkSize, to: &wav)
-        wav.append(contentsOf: "WAVE".utf8)
-        wav.append(contentsOf: "fmt ".utf8)
-        appendLittleEndian(UInt32(16), to: &wav)
-        appendLittleEndian(UInt16(1), to: &wav)
-        appendLittleEndian(UInt16(channels), to: &wav)
-        appendLittleEndian(UInt32(sampleRate), to: &wav)
-        appendLittleEndian(byteRate, to: &wav)
-        appendLittleEndian(blockAlign, to: &wav)
-        appendLittleEndian(UInt16(bitsPerSample), to: &wav)
-        wav.append(contentsOf: "data".utf8)
-        appendLittleEndian(dataSize, to: &wav)
-        wav.append(pcm)
-        try wav.write(to: url)
-    }
-
-    private func appendLittleEndian<T: FixedWidthInteger>(_ value: T, to data: inout Data) {
-        var little = value.littleEndian
-        withUnsafeBytes(of: &little) { data.append(contentsOf: $0) }
     }
 }

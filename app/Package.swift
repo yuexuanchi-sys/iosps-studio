@@ -14,7 +14,7 @@ var targets: [Target] = [
     .testTarget(name: "GiftKitTests", dependencies: ["GiftKit"]),
     .target(name: "TimelineKit", dependencies: ["BirthdayCore"]),
     .testTarget(name: "TimelineKitTests", dependencies: ["TimelineKit", "BirthdayCore"]),
-    .target(name: "TemplateKit", dependencies: ["BirthdayCore"]),
+    .target(name: "TemplateKit", dependencies: ["BirthdayCore"], resources: [.copy("Resources/MemoryTemplates")]),
     .testTarget(name: "TemplateKitTests", dependencies: ["TemplateKit"]),
 ]
 

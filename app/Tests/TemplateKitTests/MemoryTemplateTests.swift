@@ -49,6 +49,35 @@ final class MemoryTemplateTests: XCTestCase {
         """#))
     }
 
+    func testBuiltInCatalogLoadsAllEightValidTemplates() throws {
+        let catalog = try BuiltInMemoryTemplateCatalog.load()
+        XCTAssertEqual(catalog.count, 8)
+        XCTAssertEqual(Set(catalog.map(\.template.id)).count, 8)
+        XCTAssertTrue(catalog[0].isRecommended)
+        let motions = Set(catalog.flatMap { $0.template.scenes.map(\.motion) })
+        XCTAssertEqual(motions, [.still, .zoomIn, .zoomOut, .panLeft, .panRight])
+        let allowedMusicIDs: Set<String> = ["warm-piano", "music-box", "sunny-acoustic", "starry-nocturne"]
+        for item in catalog {
+            let music = try XCTUnwrap(item.template.music)
+            XCTAssertTrue(allowedMusicIDs.contains(music.assetID))
+            XCTAssertLessThanOrEqual(music.startFrame + music.frames, 480)
+            XCTAssertFalse(item.subtitle.isEmpty)
+            XCTAssertFalse(item.musicTitle.isEmpty)
+        }
+    }
+
+    func testWithOpeningCaptionOverridesFirstSceneOnly() throws {
+        let catalog = try BuiltInMemoryTemplateCatalog.load()
+        let base = try XCTUnwrap(catalog.first?.template)
+        let untouched = base.withOpeningCaption("   ")
+        XCTAssertEqual(untouched, base)
+
+        let customized = base.withOpeningCaption("  给最好的朋友  ")
+        XCTAssertEqual(customized.scenes.first?.caption, "给最好的朋友")
+        XCTAssertEqual(Array(customized.scenes.dropFirst()), Array(base.scenes.dropFirst()))
+        XCTAssertEqual(customized.music, base.music)
+    }
+
     private func decode(_ json: String) throws -> MemoryTemplate {
         try JSONDecoder().decode(MemoryTemplate.self, from: Data(json.utf8))
     }

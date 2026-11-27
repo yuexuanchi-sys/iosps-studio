@@ -33,6 +33,20 @@ public struct TemplateScene: Equatable, Decodable, Sendable {
             throw DecodingError.dataCorruptedError(forKey: .transitionFrames, in: container, debugDescription: "Invalid scene transition")
         }
     }
+
+    internal init(
+        frames: Int,
+        transitionFrames: Int,
+        motion: PhotoMotion,
+        caption: String?,
+        filterID: String?
+    ) {
+        self.frames = frames
+        self.transitionFrames = transitionFrames
+        self.motion = motion
+        self.caption = caption
+        self.filterID = filterID
+    }
 }
 
 /// References a licensed audio asset and an excerpt on the video frame grid.
@@ -103,5 +117,30 @@ public struct MemoryTemplate: Equatable, Decodable, Sendable {
     public func scene(at index: Int) -> TemplateScene? {
         guard index >= 0 else { return nil }
         return scenes[index % scenes.count]
+    }
+
+    /// Returns a copy whose first scene uses a custom non-empty opening caption while preserving timing invariants.
+    public func withOpeningCaption(_ caption: String?) -> MemoryTemplate {
+        guard let trimmed = caption?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty,
+              let first = scenes.first else {
+            return self
+        }
+        var updated = scenes
+        updated[0] = TemplateScene(
+            frames: first.frames,
+            transitionFrames: first.transitionFrames,
+            motion: first.motion,
+            caption: trimmed,
+            filterID: first.filterID
+        )
+        return MemoryTemplate(id: id, name: name, scenes: updated, music: music)
+    }
+
+    private init(id: String, name: String, scenes: [TemplateScene], music: TemplateMusic?) {
+        self.id = id
+        self.name = name
+        self.scenes = scenes
+        self.music = music
     }
 }

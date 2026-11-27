@@ -7,7 +7,7 @@ import TemplateKit
 import TimelineKit
 import VideoEngine
 
-/// Manages photo selection, template switching, in-place preview, and MP4 export for memory movies.
+/// Manages photo selection, 8 built-in templates, bundled/custom soundtracks, preview, and MP4 export.
 @MainActor
 @Observable
 final class PhotoMovieSession {
@@ -33,31 +33,32 @@ final class PhotoMovieSession {
         let url: URL
     }
 
+    enum MusicMode: Equatable, Sendable {
+        case templateDefault
+        case custom(MusicSelection)
+        case muted
+    }
+
     private enum ImportRejection: Error {
         case notPhoto
         case tooLong
     }
 
-    /// Starter built-in templates for T-0505 preview/export; T-0506 expands this catalog to 8 full templates and bundled music.
-    nonisolated static let builtInTemplates: [MemoryTemplate] = {
-        let definitions = [
-            #"{"formatVersion":1,"id":"warm-memory","name":"暖光纪念","scenes":[{"frames":45,"transitionFrames":12,"motion":"zoomIn","caption":"拾光留念"},{"frames":45,"transitionFrames":12,"motion":"panRight"},{"frames":45,"transitionFrames":12,"motion":"zoomOut","caption":"美好定格"}]}"#,
-            #"{"formatVersion":1,"id":"breezy-album","name":"轻快画卷","scenes":[{"frames":30,"transitionFrames":8,"motion":"panLeft","caption":"此刻相伴"},{"frames":30,"transitionFrames":8,"motion":"zoomIn"}]}"#,
-            #"{"formatVersion":1,"id":"quiet-keepsake","name":"静谧相册","scenes":[{"frames":60,"transitionFrames":15,"motion":"still","caption":"岁岁安暖"},{"frames":60,"transitionFrames":15,"motion":"zoomOut"}]}"#,
-        ]
-        let decoder = JSONDecoder()
-        return definitions.compactMap { try? decoder.decode(MemoryTemplate.self, from: Data($0.utf8)) }
-    }()
+    private static func loadDefaultCatalog() -> [BuiltInTemplateDescriptor] {
+        (try? BuiltInMemoryTemplateCatalog.load()) ?? []
+    }
 
     private let library: MediaLibrary
     private let previewDirectory: URL
+    private let musicResolver: @Sendable (String) -> URL?
     private var task: Task<Void, Never>?
 
     let player = AVPlayer()
-    let templates: [MemoryTemplate]
+    let catalog: [BuiltInTemplateDescriptor]
     private(set) var selectedTemplateID: String
     private(set) var photos: [PhotoItem] = []
-    private(set) var music: MusicSelection?
+    private(set) var musicMode: MusicMode = .templateDefault
+    private(set) var customOpeningCaption = ""
     private(set) var operation: Operation?
     private(set) var hasPreview = false
     private(set) var isPlaying = false
@@ -67,8 +68,43 @@ final class PhotoMovieSession {
     private(set) var importIssues: [ImportIssue] = []
     private(set) var lastExportURL: URL?
 
+    var templates: [MemoryTemplate] {
+        catalog.map(\.template)
+    }
+
+    var selectedDescriptor: BuiltInTemplateDescriptor? {
+        catalog.first { $0.template.id == selectedTemplateID } ?? catalog.first
+    }
+
     var selectedTemplate: MemoryTemplate? {
-        templates.first { $0.id == selectedTemplateID } ?? templates.first
+        selectedDescriptor?.template
+    }
+
+    var effectiveTemplate: MemoryTemplate? {
+        selectedTemplate?.withOpeningCaption(customOpeningCaption)
+    }
+
+    var music: MusicSelection? {
+        if case .custom(let selection) = musicMode {
+            return selection
+        }
+        return nil
+    }
+
+    var activeMusicDisplayName: String {
+        switch musicMode {
+        case .templateDefault:
+            if let descriptor = selectedDescriptor,
+               let spec = descriptor.template.music,
+               musicResolver(spec.assetID) != nil {
+                return String(localized: "模板配乐 · \(descriptor.musicTitle)")
+            }
+            return String(localized: "无配乐")
+        case .custom(let selection):
+            return selection.name
+        case .muted:
+            return String(localized: "已静音")
+        }
     }
 
     var estimatedDurationFrames: Int {
@@ -83,15 +119,18 @@ final class PhotoMovieSession {
     init(
         library: MediaLibrary,
         previewDirectory: URL? = nil,
-        templates: [MemoryTemplate]? = nil
+        catalog: [BuiltInTemplateDescriptor]? = nil,
+        musicResolver: (@Sendable (String) -> URL?)? = nil
     ) {
         self.library = library
         self.previewDirectory = previewDirectory ?? FileManager.default.temporaryDirectory
             .appendingPathComponent("iosps-photo-movie-\(UUID().uuidString)", isDirectory: true)
-        let candidate = templates ?? Self.builtInTemplates
-        let resolved = candidate.isEmpty ? Self.builtInTemplates : candidate
-        self.templates = resolved
-        self.selectedTemplateID = resolved.first?.id ?? ""
+        let candidate = catalog ?? Self.loadDefaultCatalog()
+        self.catalog = candidate
+        self.selectedTemplateID = candidate.first?.template.id ?? ""
+        self.musicResolver = musicResolver ?? { assetID in
+            Bundle.main.url(forResource: assetID, withExtension: "m4a", subdirectory: "Music")
+        }
     }
 
     @discardableResult
@@ -149,31 +188,63 @@ final class PhotoMovieSession {
     }
 
     func selectTemplate(id: String) {
-        guard operation == nil, id != selectedTemplateID, templates.contains(where: { $0.id == id }) else { return }
+        guard operation == nil, id != selectedTemplateID, catalog.contains(where: { $0.template.id == id }) else { return }
         selectedTemplateID = id
+        invalidatePreview()
+        message = nil
+    }
+
+    func setOpeningCaption(_ text: String) {
+        guard operation == nil, text != customOpeningCaption else { return }
+        customOpeningCaption = text
         invalidatePreview()
         message = nil
     }
 
     func selectMusic(_ url: URL) {
         guard operation == nil else { return }
-        music = MusicSelection(name: url.lastPathComponent, url: url)
+        musicMode = .custom(MusicSelection(name: url.lastPathComponent, url: url))
+        invalidatePreview()
+        message = nil
+    }
+
+    func useTemplateMusic() {
+        guard operation == nil, musicMode != .templateDefault else { return }
+        musicMode = .templateDefault
+        invalidatePreview()
+        message = nil
+    }
+
+    func muteMusic() {
+        guard operation == nil, musicMode != .muted else { return }
+        musicMode = .muted
         invalidatePreview()
         message = nil
     }
 
     func clearMusic() {
-        guard operation == nil, music != nil else { return }
-        music = nil
-        invalidatePreview()
-        message = nil
+        muteMusic()
+    }
+
+    func resolvedMusic(for template: MemoryTemplate) -> PhotoMovieMusic? {
+        switch musicMode {
+        case .muted:
+            return nil
+        case .custom(let selection):
+            return PhotoMovieMusic(url: selection.url)
+        case .templateDefault:
+            guard let spec = template.music, let url = musicResolver(spec.assetID) else {
+                return nil
+            }
+            return PhotoMovieMusic(url: url, excerpt: spec)
+        }
     }
 
     @discardableResult
     func preview() -> Task<Void, Never>? {
-        guard !photos.isEmpty, let template = selectedTemplate else { return nil }
+        guard !photos.isEmpty, let template = effectiveTemplate else { return nil }
         let inputs = photos.map { PhotoMovieInput(id: $0.id, url: $0.sourceURL) }
-        let resolvedMusic = music.map { PhotoMovieMusic(url: $0.url) }
+        let audio = resolvedMusic(for: template)
         let directory = previewDirectory
         return perform(.previewing) {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -182,7 +253,7 @@ final class PhotoMovieSession {
                 try await self.renderInBackground(
                     photos: inputs,
                     template: template,
-                    music: resolvedMusic,
+                    music: audio,
                     to: outputURL,
                     operation: .previewing
                 )
@@ -200,14 +271,14 @@ final class PhotoMovieSession {
 
     @discardableResult
     func export(at url: URL) -> Task<Void, Never>? {
-        guard !photos.isEmpty, let template = selectedTemplate else { return nil }
+        guard !photos.isEmpty, let template = effectiveTemplate else { return nil }
         let inputs = photos.map { PhotoMovieInput(id: $0.id, url: $0.sourceURL) }
-        let resolvedMusic = music.map { PhotoMovieMusic(url: $0.url) }
+        let audio = resolvedMusic(for: template)
         return perform(.exporting) {
             try await self.renderInBackground(
                 photos: inputs,
                 template: template,
-                music: resolvedMusic,
+                music: audio,
                 to: url,
                 operation: .exporting
             )

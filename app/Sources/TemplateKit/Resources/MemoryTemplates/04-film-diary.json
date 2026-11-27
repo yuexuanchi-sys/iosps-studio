@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "film-diary",
+  "name": "胶片日记",
+  "scenes": [
+    {
+      "frames": 45,
+      "transitionFrames": 0,
+      "motion": "still",
+      "caption": "生活切片"
+    },
+    {
+      "frames": 42,
+      "transitionFrames": 6,
+      "motion": "zoomIn"
+    },
+    {
+      "frames": 45,
+      "transitionFrames": 0,
+      "motion": "panLeft",
+      "caption": "慢一点也很好"
+    }
+  ],
+  "music": {
+    "assetID": "warm-piano",
+    "startFrame": 60,
+    "frames": 360
+  }
+}

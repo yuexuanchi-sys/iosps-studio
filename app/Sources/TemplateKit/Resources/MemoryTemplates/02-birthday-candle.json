@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "birthday-candle",
+  "name": "烛光许愿",
+  "scenes": [
+    {
+      "frames": 48,
+      "transitionFrames": 15,
+      "motion": "zoomOut",
+      "caption": "生日快乐"
+    },
+    {
+      "frames": 45,
+      "transitionFrames": 12,
+      "motion": "still"
+    },
+    {
+      "frames": 48,
+      "transitionFrames": 15,
+      "motion": "zoomIn",
+      "caption": "心愿常明"
+    }
+  ],
+  "music": {
+    "assetID": "music-box",
+    "startFrame": 0,
+    "frames": 420
+  }
+}

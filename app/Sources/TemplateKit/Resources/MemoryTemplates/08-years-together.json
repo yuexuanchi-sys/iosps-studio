@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "years-together",
+  "name": "岁岁相伴",
+  "scenes": [
+    {
+      "frames": 54,
+      "transitionFrames": 15,
+      "motion": "zoomOut",
+      "caption": "走过的路"
+    },
+    {
+      "frames": 54,
+      "transitionFrames": 15,
+      "motion": "panLeft"
+    },
+    {
+      "frames": 54,
+      "transitionFrames": 15,
+      "motion": "zoomIn",
+      "caption": "下一年也在一起"
+    }
+  ],
+  "music": {
+    "assetID": "starry-nocturne",
+    "startFrame": 60,
+    "frames": 360
+  }
+}

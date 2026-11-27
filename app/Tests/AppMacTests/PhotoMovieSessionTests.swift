@@ -43,23 +43,87 @@ final class PhotoMovieSessionTests: XCTestCase {
         }
         XCTAssertEqual(try [p1, p2].map { try Data(contentsOf: $0) }, originalBytes)
 
-        XCTAssertEqual(session.selectedTemplateID, "warm-memory")
+        XCTAssertEqual(session.catalog.count, 8)
+        XCTAssertEqual(session.selectedTemplateID, "warm-keepsake")
         XCTAssertEqual(session.estimatedDurationFrames, 78)
 
         session.movePhoto(from: 1, by: -1)
         XCTAssertEqual(session.photos.map(\.name), ["p2.jpg", "p1.jpg"])
 
-        session.selectTemplate(id: "breezy-album")
+        session.selectTemplate(id: "sunny-journey")
         XCTAssertEqual(session.photos.map(\.name), ["p2.jpg", "p1.jpg"])
         XCTAssertEqual(session.estimatedDurationFrames, 52)
 
-        session.selectTemplate(id: "quiet-keepsake")
+        session.selectTemplate(id: "starry-night")
         XCTAssertEqual(session.photos.map(\.name), ["p2.jpg", "p1.jpg"])
-        XCTAssertEqual(session.estimatedDurationFrames, 105)
+        XCTAssertEqual(session.estimatedDurationFrames, 102)
 
         session.removePhoto(at: 0)
         XCTAssertEqual(session.photos.map(\.name), ["p1.jpg"])
         XCTAssertEqual(session.estimatedDurationFrames, 60)
+    }
+
+    @MainActor
+    func testBuiltInCatalogResolvesAllEightTemplatesAndBundledMusic() async throws {
+        let root = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let library = MediaLibrary(directory: root.appendingPathComponent("Media"))
+        let session = PhotoMovieSession(library: library, previewDirectory: root.appendingPathComponent("Preview"))
+
+        XCTAssertEqual(session.catalog.count, 8)
+        XCTAssertEqual(session.musicMode, .templateDefault)
+        XCTAssertTrue(session.activeMusicDisplayName.contains("温暖钢琴"), session.activeMusicDisplayName)
+
+        for descriptor in session.catalog {
+            let spec = try XCTUnwrap(descriptor.template.music)
+            let resolved = try XCTUnwrap(session.resolvedMusic(for: descriptor.template))
+            XCTAssertTrue(FileManager.default.fileExists(atPath: resolved.url.path))
+            let asset = AVURLAsset(url: resolved.url)
+            let duration = try await asset.load(.duration)
+            let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+            XCTAssertEqual(audioTracks.count, 1)
+            let requiredSeconds = Double(spec.startFrame + spec.frames) / Double(VideoTiming.framesPerSecond)
+            XCTAssertGreaterThanOrEqual(duration.seconds, requiredSeconds)
+        }
+
+        let p1 = root.appendingPathComponent("candle-a.jpg")
+        let p2 = root.appendingPathComponent("candle-b.jpg")
+        try writePhoto(to: p1, background: (0.14, 0.22, 0.52))
+        try writePhoto(to: p2, background: (0.58, 0.22, 0.16))
+        let imported = try XCTUnwrap(session.importPhotos([p1, p2]))
+        await imported.value
+
+        session.selectTemplate(id: "birthday-candle")
+        XCTAssertTrue(session.activeMusicDisplayName.contains("晶莹八音盒"), session.activeMusicDisplayName)
+        session.setOpeningCaption("祝你生日快乐")
+
+        session.muteMusic()
+        XCTAssertEqual(session.musicMode, .muted)
+        XCTAssertNil(session.resolvedMusic(for: try XCTUnwrap(session.effectiveTemplate)))
+        session.useTemplateMusic()
+        XCTAssertEqual(session.musicMode, .templateDefault)
+        XCTAssertNotNil(session.resolvedMusic(for: try XCTUnwrap(session.effectiveTemplate)))
+
+        let output = root.appendingPathComponent("bundled-candle.mp4")
+        let exported = try XCTUnwrap(session.export(at: output))
+        await exported.value
+        XCTAssertTrue(session.message?.contains("已导出") == true, session.message ?? "nil")
+
+        let asset = AVURLAsset(url: output)
+        let duration = try await asset.load(.duration)
+        let videoTracks = try await asset.loadTracks(withMediaType: .video)
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        let track = try XCTUnwrap(videoTracks.first)
+        let naturalSize = try await track.load(.naturalSize)
+        XCTAssertEqual(naturalSize, CGSize(width: 1920, height: 1080))
+        // birthday-candle: 48 + 45 - 15 = 78 frames = 2.60s
+        XCTAssertEqual(duration.seconds, 78.0 / 30.0, accuracy: 0.08)
+        XCTAssertEqual(audioTracks.count, 1)
+
+        let attachment = XCTAttachment(data: try Data(contentsOf: output), uniformTypeIdentifier: UTType.mpeg4Movie.identifier)
+        attachment.name = "photo-movie-bundled-candle"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     @MainActor
@@ -78,7 +142,7 @@ final class PhotoMovieSessionTests: XCTestCase {
 
         let imported = try XCTUnwrap(session.importPhotos([p1, p2]))
         await imported.value
-        session.selectTemplate(id: "breezy-album")
+        session.selectTemplate(id: "sunny-journey")
         session.selectMusic(wav)
 
         let previewTask = try XCTUnwrap(session.preview())
@@ -131,7 +195,7 @@ final class PhotoMovieSessionTests: XCTestCase {
 
         let imported = try XCTUnwrap(session.importPhotos([p1, p2]))
         await imported.value
-        session.selectTemplate(id: "breezy-album")
+        session.selectTemplate(id: "sunny-journey")
         session.selectMusic(wav440)
 
         let movie = outputs.appendingPathComponent("memory.mp4")
@@ -145,7 +209,7 @@ final class PhotoMovieSessionTests: XCTestCase {
         // Add more shots and switch to a longer template so cancellation deterministically interrupts an active render.
         let extraImport = try XCTUnwrap(session.importPhotos([p1, p2, p1, p2]))
         await extraImport.value
-        session.selectTemplate(id: "quiet-keepsake")
+        session.selectTemplate(id: "starry-night")
         let cancelled = try XCTUnwrap(session.export(at: movie))
         await Task.yield()
         session.cancelCurrentOperation()
@@ -157,7 +221,7 @@ final class PhotoMovieSessionTests: XCTestCase {
         while session.photos.count > 2 {
             session.removePhoto(at: session.photos.count - 1)
         }
-        session.selectTemplate(id: "breezy-album")
+        session.selectTemplate(id: "sunny-journey")
 
         session.selectMusic(corruptAudio)
         let badAudioExport = try XCTUnwrap(session.export(at: movie))

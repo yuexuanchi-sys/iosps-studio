@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "bloom-season",
+  "name": "花开四季",
+  "scenes": [
+    {
+      "frames": 36,
+      "transitionFrames": 10,
+      "motion": "panLeft",
+      "caption": "春风有信"
+    },
+    {
+      "frames": 36,
+      "transitionFrames": 10,
+      "motion": "zoomOut"
+    },
+    {
+      "frames": 36,
+      "transitionFrames": 10,
+      "motion": "panRight",
+      "caption": "花开如约"
+    }
+  ],
+  "music": {
+    "assetID": "sunny-acoustic",
+    "startFrame": 60,
+    "frames": 360
+  }
+}

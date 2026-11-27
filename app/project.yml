@@ -19,6 +19,9 @@ targets:
       - path: Resources/Notices
         type: folder
         buildPhase: resources
+      - path: Resources/Music
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: IOSPSModules
         product: DesignSystem

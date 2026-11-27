@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "sunny-journey",
+  "name": "晴日漫游",
+  "scenes": [
+    {
+      "frames": 30,
+      "transitionFrames": 8,
+      "motion": "panRight",
+      "caption": "出发去看看世界"
+    },
+    {
+      "frames": 30,
+      "transitionFrames": 8,
+      "motion": "panLeft"
+    },
+    {
+      "frames": 30,
+      "transitionFrames": 8,
+      "motion": "zoomIn",
+      "caption": "沿途皆风景"
+    }
+  ],
+  "music": {
+    "assetID": "sunny-acoustic",
+    "startFrame": 0,
+    "frames": 420
+  }
+}

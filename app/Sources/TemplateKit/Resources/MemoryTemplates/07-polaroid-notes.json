@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "polaroid-notes",
+  "name": "拍立得笔记",
+  "scenes": [
+    {
+      "frames": 24,
+      "transitionFrames": 0,
+      "motion": "zoomIn",
+      "caption": "定格这一刻"
+    },
+    {
+      "frames": 24,
+      "transitionFrames": 0,
+      "motion": "still"
+    },
+    {
+      "frames": 24,
+      "transitionFrames": 0,
+      "motion": "panRight",
+      "caption": "闪闪发光的日子"
+    }
+  ],
+  "music": {
+    "assetID": "music-box",
+    "startFrame": 60,
+    "frames": 360
+  }
+}

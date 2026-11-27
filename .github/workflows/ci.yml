@@ -127,11 +127,15 @@ jobs:
             grep -F 'photo-movie-' "$output/$scenario/manifest.json"
           done
           output="$RUNNER_TEMP/iosps-artifacts/photo-movie-ui"
-          mkdir -p "$output/session" "$output/ui"
+          mkdir -p "$output/session" "$output/bundled" "$output/ui"
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
             --output-path "$output/session" \
             --test-id 'PhotoMovieSessionTests/testExportProgressCancellationCorruptAudioAndReadOnlyRecovery()'
           grep -F 'photo-movie-session-recovered' "$output/session/manifest.json"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output/bundled" \
+            --test-id 'PhotoMovieSessionTests/testBuiltInCatalogResolvesAllEightTemplatesAndBundledMusic()'
+          grep -F 'photo-movie-bundled-candle' "$output/bundled/manifest.json"
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
             --output-path "$output/ui" \
             --test-id 'PhotoMovieUITests/testToolbarEntryImportReorderSwitchTemplatePreviewAndExport()'
@@ -185,6 +189,7 @@ jobs:
           print("Release signed entitlements: {}")
           PY
           diff -rq app/Resources/Notices "$signed_app/Contents/Resources/Notices"
+          diff -rq app/Resources/Music "$signed_app/Contents/Resources/Music"
           (cd "$output" && shasum -a 256 IOSPS.app.zip > IOSPS.app.zip.sha256)
           open -n "$signed_app"
           for attempt in {1..10}; do

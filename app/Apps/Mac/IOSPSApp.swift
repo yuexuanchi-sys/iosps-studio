@@ -27,7 +27,7 @@ struct IOSPSApp: App {
         WindowGroup {
             MainWindow(session: session, photoMovie: photoMovie, editor: editor, birthday: birthday, celebration: celebration)
         }
-        .defaultSize(width: 720, height: 480)
+        .defaultSize(width: 820, height: 560)
         .commands {
             BirthdayCommands(reload: birthday.reload)
             AboutCommands()

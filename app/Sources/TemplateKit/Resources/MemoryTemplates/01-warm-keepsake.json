@@ -1,0 +1,29 @@
+{
+  "formatVersion": 1,
+  "id": "warm-keepsake",
+  "name": "暖光留念",
+  "scenes": [
+    {
+      "frames": 45,
+      "transitionFrames": 12,
+      "motion": "zoomIn",
+      "caption": "拾光留念"
+    },
+    {
+      "frames": 45,
+      "transitionFrames": 12,
+      "motion": "panRight"
+    },
+    {
+      "frames": 45,
+      "transitionFrames": 12,
+      "motion": "zoomOut",
+      "caption": "岁岁安暖"
+    }
+  ],
+  "music": {
+    "assetID": "warm-piano",
+    "startFrame": 0,
+    "frames": 420
+  }
+}
