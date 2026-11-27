@@ -95,6 +95,11 @@ jobs:
           done
           grep -F 'birthday-celebration-static' "$output/testBirthdayFirstLaunchSkipReopenAndReplay/manifest.json"
           grep -F 'birthday-easter-egg-open' "$output/testEggRequiresThreeClicksAndKeyboardCanOpenIt/manifest.json"
+          output="$RUNNER_TEMP/iosps-artifacts/video-editor"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output" --test-id 'VideoEditorUITests/testFinderImportTrimReorderSaveReopenAndExport()'
+          grep -F 'video-editor-exported' "$output/manifest.json"
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -162,6 +167,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/license-window/
             ${{ runner.temp }}/iosps-artifacts/birthday-control/
             ${{ runner.temp }}/iosps-artifacts/birthday-celebration/
+            ${{ runner.temp }}/iosps-artifacts/video-editor/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/build-target.txt

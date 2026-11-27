@@ -1,3 +1,5 @@
+import Foundation
+import UniformTypeIdentifiers
 import XCTest
 
 final class VideoEditorUITests: XCTestCase {
@@ -6,10 +8,161 @@ final class VideoEditorUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
+        openEditor(in: app)
+    }
+
+    @MainActor
+    func testFinderImportTrimReorderSaveReopenAndExport() throws {
+        continueAfterFailure = false
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let inputs = root.appendingPathComponent("Inputs")
+        let outputs = root.appendingPathComponent("Outputs")
+        try FileManager.default.createDirectory(at: inputs, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outputs, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let fixtures = Bundle(for: Self.self)
+        for (name, ext) in [("source-a", "mov"), ("source-b", "mp4")] {
+            let source = try XCTUnwrap(fixtures.url(forResource: name, withExtension: ext,
+                                                   subdirectory: "VideoEditorFixtures"))
+            try FileManager.default.copyItem(at: source, to: inputs.appendingPathComponent(source.lastPathComponent))
+        }
+        try Data("Synthetic unreadable movie".utf8).write(to: inputs.appendingPathComponent("corrupt.mov"))
+        let app = XCUIApplication()
+        app.launchEnvironment["IOSPS_TEST_VIDEO_DIRECTORY"] = root.appendingPathComponent("Local").path
+        app.launch()
+        openEditor(in: app)
+
+        let first = app.buttons["video-clip-0"]
+        let second = app.buttons["video-clip-1"]
+        app.buttons["video-import"].click()
+        let picker = app.sheets["open-panel"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(picker.waitForNonExistence(timeout: 5))
+        XCTAssertFalse(first.exists)
+
+        app.buttons["video-import"].click()
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        goTo(inputs, in: app)
+        namedFile("source-a.mov", in: picker).click()
+        app.typeKey("a", modifierFlags: .command)
+        confirm(picker.buttons["OKButton"])
+        XCTAssertTrue(second.waitForExistence(timeout: 15))
+        XCTAssertTrue(first.label.contains("source-a.mov"), first.debugDescription)
+        XCTAssertTrue(second.label.contains("source-b.mp4"), second.debugDescription)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "corrupt.mov")).firstMatch.exists)
+
+        first.click()
+        replaceText(in: app.textFields["video-trim-end"], with: "30", app: app)
+        app.buttons["video-trim"].click()
+        second.click()
+        replaceText(in: app.textFields["video-trim-start"], with: "30", app: app)
+        app.buttons["video-trim"].click()
+        app.buttons["video-move-up"].click()
+        XCTAssertTrue(first.label.contains("source-b.mp4"), first.debugDescription)
+        app.buttons["video-undo"].click()
+        XCTAssertTrue(first.label.contains("source-a.mov"))
+        app.buttons["video-redo"].click()
+        XCTAssertTrue(first.label.contains("source-b.mp4"))
+
+        let project = outputs.appendingPathComponent("edited.iosps.json")
+        app.buttons["video-save"].click()
+        save(project, in: app)
+        let previousProject = try Data(contentsOf: project)
+        app.buttons["video-save"].click()
+        let cancelledSave = app.sheets.firstMatch
+        XCTAssertTrue(cancelledSave.waitForExistence(timeout: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(cancelledSave.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(try Data(contentsOf: project), previousProject)
+
+        app.terminate()
+        app.launch()
+        openEditor(in: app)
+        XCTAssertFalse(first.exists)
+        app.buttons["video-open"].click()
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        goTo(outputs, in: app)
+        namedFile(project.lastPathComponent, in: picker).click()
+        confirm(picker.buttons["OKButton"])
+        XCTAssertTrue(second.waitForExistence(timeout: 15))
+        XCTAssertTrue(first.label.contains("source-b.mp4"))
+        XCTAssertTrue(second.label.contains("source-a.mov"))
+        app.buttons["video-preview"].click()
+        let player = app.descendants(matching: .any).matching(identifier: "video-player").firstMatch
+        XCTAssertTrue(player.waitForExistence(timeout: 5))
+        attach(XCTAttachment(screenshot: app.windows["IOSPS"].screenshot()), named: "video-editor-reopened")
+
+        let movie = outputs.appendingPathComponent("edited.mp4")
+        app.buttons["video-export"].click()
+        save(movie, in: app)
+        let exported = app.staticTexts.matching(NSPredicate(
+            format: "identifier == %@ AND (label CONTAINS %@ OR value CONTAINS %@)",
+            "video-status", "MP4 已导出", "MP4 已导出"
+        )).firstMatch
+        XCTAssertTrue(exported.waitForExistence(timeout: 20))
+        attach(XCTAttachment(data: try Data(contentsOf: movie), uniformTypeIdentifier: UTType.mpeg4Movie.identifier),
+               named: "video-editor-exported")
+        attach(XCTAttachment(data: previousProject, uniformTypeIdentifier: UTType.json.identifier),
+               named: "video-editor-project")
+    }
+
+    @MainActor
+    private func openEditor(in app: XCUIApplication) {
         XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10))
         let entry = app.windows["IOSPS"].toolbars.buttons.matching(identifier: "video-editor-entry").firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 3), "The normal App window should provide a video editor entry.")
         entry.click()
         XCTAssertTrue(app.buttons["video-import"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    private func goTo(_ directory: URL, in app: XCUIApplication) {
+        app.typeKey("g", modifierFlags: [.command, .shift])
+        app.typeText(directory.path)
+        app.typeKey(.return, modifierFlags: [])
+    }
+
+    @MainActor
+    private func namedFile(_ filename: String, in panel: XCUIElement) -> XCUIElement {
+        let element = panel.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@ OR value == %@", filename, filename)).firstMatch
+        XCTAssertTrue(element.waitForExistence(timeout: 5), panel.debugDescription)
+        return element
+    }
+
+    @MainActor
+    private func replaceText(in element: XCUIElement, with text: String, app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: 5))
+        element.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText(text)
+    }
+
+    @MainActor
+    private func save(_ url: URL, in app: XCUIApplication) {
+        let panel = app.sheets.firstMatch
+        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        goTo(url.deletingLastPathComponent(), in: app)
+        replaceText(in: panel.textFields.firstMatch, with: url.lastPathComponent, app: app)
+        confirm(panel.buttons["OKButton"])
+        let written = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            FileManager.default.fileExists(atPath: url.path)
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [written], timeout: 20), .completed)
+    }
+
+    @MainActor
+    private func confirm(_ button: XCUIElement) {
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND enabled == true"), object: button)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed)
+        button.click()
+    }
+
+    @MainActor
+    private func attach(_ attachment: XCTAttachment, named name: String) {
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }
