@@ -426,15 +426,15 @@ public enum PhotoMovieRenderer {
         let byteCount = frameCount * audioChannels * MemoryLayout<Float>.size
         var blockBuffer: CMBlockBuffer?
         let allocStatus = CMBlockBufferCreateWithMemoryBlock(
-            kCFAllocatorDefault,
-            nil,
-            byteCount,
-            kCFAllocatorDefault,
-            nil,
-            0,
-            byteCount,
-            kCMBlockBufferAssureMemoryNowFlag,
-            &blockBuffer
+            allocator: kCFAllocatorDefault,
+            memoryBlock: nil,
+            blockLength: byteCount,
+            blockAllocator: kCFAllocatorDefault,
+            customBlockSource: nil,
+            offsetToData: 0,
+            dataLength: byteCount,
+            flags: kCMBlockBufferAssureMemoryNowFlag,
+            blockBufferOut: &blockBuffer
         )
         guard allocStatus == kCMBlockBufferNoErr, let blockBuffer else {
             throw Failure.frameAllocation
