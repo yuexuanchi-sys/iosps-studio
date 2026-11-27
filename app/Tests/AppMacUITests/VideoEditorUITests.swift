@@ -4,11 +4,13 @@ import XCTest
 
 final class VideoEditorUITests: XCTestCase {
     @MainActor
-    func testOpensEditorFromTheAppToolbar() {
+    func testAppToolbarOpensEditor() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
         openEditor(in: app)
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
     }
 
     @MainActor
@@ -57,6 +59,11 @@ final class VideoEditorUITests: XCTestCase {
         )).firstMatch
         XCTAssertTrue(issue.waitForExistence(timeout: 10))
         XCTAssertTrue(second.exists)
+        app.buttons["video-import"].click()
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(picker.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(first.exists && second.exists)
 
         first.click()
         replaceText(in: app.textFields["video-trim-end"], with: "30", app: app)
@@ -82,9 +89,17 @@ final class VideoEditorUITests: XCTestCase {
         XCTAssertTrue(cancelledSave.waitForNonExistence(timeout: 5))
         XCTAssertEqual(try Data(contentsOf: project), previousProject)
 
-        app.terminate()
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
         app.launch()
-        openEditor(in: app)
+        let window = app.windows["IOSPS"]
+        if !window.waitForExistence(timeout: 3) {
+            app.typeKey("n", modifierFlags: .command)
+        }
+        XCTAssertTrue(window.waitForExistence(timeout: 5), app.debugDescription)
+        if !app.buttons["video-import"].exists {
+            openEditor(in: app)
+        }
         XCTAssertFalse(first.exists)
         app.buttons["video-open"].click()
         choose(project, in: app)
@@ -112,7 +127,7 @@ final class VideoEditorUITests: XCTestCase {
 
     @MainActor
     private func openEditor(in app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10), app.debugDescription)
         let entry = app.windows["IOSPS"].toolbars.buttons.matching(identifier: "video-editor-entry").firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 3), "The normal App window should provide a video editor entry.")
         entry.click()
