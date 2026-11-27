@@ -4,6 +4,7 @@ import CoreGraphics
 import Foundation
 import ImageIO
 import TemplateKit
+import TimelineKit
 import UniformTypeIdentifiers
 import VideoEngine
 import XCTest
@@ -114,6 +115,136 @@ final class PhotoMovieRendererTests: XCTestCase {
     }
 
     @MainActor
+    func testMuxesMusicWithFadeInOutAndBeatPacing() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let p1 = directory.appendingPathComponent("p1.jpg")
+        let p2 = directory.appendingPathComponent("p2.jpg")
+        let p3 = directory.appendingPathComponent("p3.jpg")
+        let wav = directory.appendingPathComponent("tone-440.wav")
+        try writePhoto(to: p1, background: (0.8, 0.1, 0.1))
+        try writePhoto(to: p2, background: (0.1, 0.7, 0.2))
+        try writePhoto(to: p3, background: (0.1, 0.2, 0.85))
+        try writeStereoWave(to: wav, segments: [(frequency: 440, seconds: 4.0)])
+        let originalMedia = try [p1, p2, p3, wav].map { try Data(contentsOf: $0) }
+
+        let pacing = try MusicBeatAllocator.allocate(
+            photoCount: 3,
+            targetDurationFrames: 90,
+            beatsPerMinute: 120,
+            preferredOverlaps: [12, 12],
+            defaultFadeInFrames: 15,
+            defaultFadeOutFrames: 30
+        )
+        let music = PhotoMovieMusic(
+            url: wav,
+            startFrame: 0,
+            excerptFrames: 90,
+            fadeInFrames: pacing.fadeInFrames,
+            fadeOutFrames: pacing.fadeOutFrames
+        )
+        let movie = directory.appendingPathComponent("music.mp4")
+        let recorder = ProgressRecorder()
+        try await PhotoMovieRenderer.write(
+            photos: [p1, p2, p3].map { .init(id: MediaID(), url: $0) },
+            template: template(scenes: [
+                ["motion": "zoomIn", "frames": 30, "transitionFrames": 12, "caption": "节拍回忆"],
+                ["motion": "panRight", "frames": 30, "transitionFrames": 12],
+                ["motion": "zoomOut", "frames": 30, "transitionFrames": 0],
+            ]),
+            music: music,
+            pacing: pacing,
+            to: movie,
+            progress: { recorder.record($0) }
+        )
+        let asset = AVURLAsset(url: movie)
+        let duration = try await asset.load(.duration)
+        let videoTracks = try await asset.loadTracks(withMediaType: .video)
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        let track = try XCTUnwrap(videoTracks.first)
+        XCTAssertEqual(track.naturalSize, CGSize(width: 1920, height: 1080))
+        XCTAssertEqual(duration.seconds, 3.0, accuracy: 0.05)
+        XCTAssertEqual(audioTracks.count, 1)
+        XCTAssertEqual(recorder.first, 0)
+        XCTAssertEqual(recorder.last, 1)
+        XCTAssertTrue(recorder.isNonDecreasing)
+        XCTAssertEqual(try [p1, p2, p3, wav].map { try Data(contentsOf: $0) }, originalMedia)
+        try attach(movie, as: "photo-movie-music")
+    }
+
+    @MainActor
+    func testLoopsShortExcerptAndRejectsOutOfRangeOrCorruptAudio() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let p1 = directory.appendingPathComponent("p1.jpg")
+        let p2 = directory.appendingPathComponent("p2.jpg")
+        let outputs = directory.appendingPathComponent("Outputs")
+        try FileManager.default.createDirectory(at: outputs, withIntermediateDirectories: false)
+        try writePhoto(to: p1, background: (0.15, 0.25, 0.6))
+        try writePhoto(to: p2, background: (0.6, 0.2, 0.25))
+        let wav = directory.appendingPathComponent("two-tone.wav")
+        // First 30 frames (1.0s) are 440 Hz, next 30 frames (1.0s) are 660 Hz.
+        try writeStereoWave(to: wav, segments: [(frequency: 440, seconds: 1.0), (frequency: 660, seconds: 1.0)])
+        let corruptAudio = directory.appendingPathComponent("corrupt.m4a")
+        try Data("Not valid audio".utf8).write(to: corruptAudio)
+        let originalFiles = try [p1, p2, wav].map { try Data(contentsOf: $0) }
+
+        let inputs = [p1, p2].map { PhotoMovieInput(id: MediaID(), url: $0) }
+        let twoShots = try template(motions: ["still", "still"], frames: 30)
+        let movie = outputs.appendingPathComponent("soundtrack.mp4")
+        try await PhotoMovieRenderer.write(photos: inputs, template: twoShots, to: movie)
+        let baselineBytes = try Data(contentsOf: movie)
+
+        do {
+            try await PhotoMovieRenderer.write(
+                photos: inputs,
+                template: twoShots,
+                music: PhotoMovieMusic(url: corruptAudio),
+                to: movie
+            )
+            XCTFail("Corrupt audio must fail")
+        } catch PhotoMovieRenderer.Failure.unreadableAudio {}
+        XCTAssertEqual(try Data(contentsOf: movie), baselineBytes)
+
+        do {
+            try await PhotoMovieRenderer.write(
+                photos: inputs,
+                template: twoShots,
+                music: PhotoMovieMusic(url: wav, startFrame: 45, excerptFrames: 30),
+                to: movie
+            )
+            XCTFail("Out-of-range music excerpt must fail")
+        } catch PhotoMovieRenderer.Failure.audioExcerptOutOfRange {}
+        XCTAssertEqual(try Data(contentsOf: movie), baselineBytes)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: outputs.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: outputs.path) }
+        let loopedExcerpt = PhotoMovieMusic(
+            url: wav,
+            startFrame: 30,
+            excerptFrames: 30,
+            fadeInFrames: 6,
+            fadeOutFrames: 12
+        )
+        do {
+            try await PhotoMovieRenderer.write(photos: inputs, template: twoShots, music: loopedExcerpt, to: movie)
+            XCTFail("Read-only directory must fail")
+        } catch PhotoMovieRenderer.Failure.invalidDestination {}
+        XCTAssertEqual(try Data(contentsOf: movie), baselineBytes)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: outputs.path)
+        try await PhotoMovieRenderer.write(photos: inputs, template: twoShots, music: loopedExcerpt, to: movie)
+        let asset = AVURLAsset(url: movie)
+        let duration = try await asset.load(.duration)
+        let audioTracks = try await asset.loadTracks(withMediaType: .audio)
+        XCTAssertEqual(duration.seconds, 2.0, accuracy: 0.05)
+        XCTAssertEqual(audioTracks.count, 1)
+        XCTAssertEqual(try [p1, p2, wav].map { try Data(contentsOf: $0) }, originalFiles)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: outputs.path), ["soundtrack.mp4"])
+        try attach(movie, as: "photo-movie-music-loop")
+    }
+
+    @MainActor
     func testFailedOrCancelledWritesKeepEarlierMovieAndCanRetry() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -212,10 +343,84 @@ final class PhotoMovieRendererTests: XCTestCase {
         XCTAssertTrue(CGImageDestinationFinalize(file))
     }
 
+    private func writeStereoWave(to url: URL, segments: [(frequency: Double, seconds: Double)]) throws {
+        let sampleRate = 44_100
+        let channels = 2
+        let bitsPerSample = 16
+        var pcm = Data()
+        for segment in segments {
+            let count = Int((segment.seconds * Double(sampleRate)).rounded())
+            for index in 0..<count {
+                let phase = 2.0 * Double.pi * segment.frequency * Double(index) / Double(sampleRate)
+                let sample = Int16((sin(phase) * 0.8 * Double(Int16.max)).rounded())
+                var little = sample.littleEndian
+                withUnsafeBytes(of: &little) { bytes in
+                    pcm.append(contentsOf: bytes)
+                    pcm.append(contentsOf: bytes)
+                }
+            }
+        }
+        let byteRate = UInt32(sampleRate * channels * bitsPerSample / 8)
+        let blockAlign = UInt16(channels * bitsPerSample / 8)
+        let dataSize = UInt32(pcm.count)
+        let chunkSize = UInt32(36 + pcm.count)
+        var wav = Data()
+        wav.append(contentsOf: "RIFF".utf8)
+        appendLittleEndian(chunkSize, to: &wav)
+        wav.append(contentsOf: "WAVE".utf8)
+        wav.append(contentsOf: "fmt ".utf8)
+        appendLittleEndian(UInt32(16), to: &wav)
+        appendLittleEndian(UInt16(1), to: &wav)
+        appendLittleEndian(UInt16(channels), to: &wav)
+        appendLittleEndian(UInt32(sampleRate), to: &wav)
+        appendLittleEndian(byteRate, to: &wav)
+        appendLittleEndian(blockAlign, to: &wav)
+        appendLittleEndian(UInt16(bitsPerSample), to: &wav)
+        wav.append(contentsOf: "data".utf8)
+        appendLittleEndian(dataSize, to: &wav)
+        wav.append(pcm)
+        try wav.write(to: url)
+    }
+
+    private func appendLittleEndian<T: FixedWidthInteger>(_ value: T, to data: inout Data) {
+        var little = value.littleEndian
+        withUnsafeBytes(of: &little) { data.append(contentsOf: $0) }
+    }
+
     private func attach(_ movie: URL, as name: String) throws {
         let artifact = XCTAttachment(data: try Data(contentsOf: movie), uniformTypeIdentifier: UTType.mpeg4Movie.identifier)
         artifact.name = name
         artifact.lifetime = .keepAlways
         add(artifact)
+    }
+}
+
+private final class ProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [Double] = []
+
+    func record(_ value: Double) {
+        lock.lock()
+        values.append(value)
+        lock.unlock()
+    }
+
+    var first: Double? {
+        lock.lock()
+        defer { lock.unlock() }
+        return values.first
+    }
+
+    var last: Double? {
+        lock.lock()
+        defer { lock.unlock() }
+        return values.last
+    }
+
+    var isNonDecreasing: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard values.count >= 2 else { return true }
+        return zip(values, values.dropFirst()).allSatisfy { $0 <= $1 }
     }
 }
