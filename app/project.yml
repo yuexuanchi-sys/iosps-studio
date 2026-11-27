@@ -55,6 +55,8 @@ targets:
         buildPhase: resources
     dependencies:
       - target: AppMac
+      - package: IOSPSModules
+        product: TemplateKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.iosps.birthday.tests
