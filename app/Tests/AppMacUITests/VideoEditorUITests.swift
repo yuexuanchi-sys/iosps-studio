@@ -106,10 +106,12 @@ final class VideoEditorUITests: XCTestCase {
         XCTAssertTrue(second.waitForExistence(timeout: 15))
         XCTAssertTrue(first.label.contains("source-b.mp4"))
         XCTAssertTrue(second.label.contains("source-a.mov"))
+        let previewPrompt = app.staticTexts["预览当前顺序与裁切"]
+        XCTAssertTrue(previewPrompt.exists)
         app.buttons["video-preview"].click()
-        let player = app.descendants(matching: .any).matching(identifier: "video-player").firstMatch
-        XCTAssertTrue(player.waitForExistence(timeout: 5))
-        attach(XCTAttachment(screenshot: app.windows["IOSPS"].screenshot()), named: "video-editor-reopened")
+        XCTAssertTrue(previewPrompt.waitForNonExistence(timeout: 5), "The preview must replace its prompt.")
+        XCTAssertEqual(app.state, .runningForeground, "The App must keep running after playback starts.")
+        attach(XCTAttachment(screenshot: window.screenshot()), named: "video-editor-reopened")
 
         let movie = outputs.appendingPathComponent("edited.mp4")
         app.buttons["video-export"].click()

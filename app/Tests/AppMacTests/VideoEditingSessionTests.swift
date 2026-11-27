@@ -86,6 +86,11 @@ final class VideoEditingSessionTests: XCTestCase {
         let item = try XCTUnwrap(session.player.currentItem)
         let previewDuration = try await item.asset.load(.duration)
         XCTAssertEqual(previewDuration.seconds, 2, accuracy: 1.0 / 30)
+        for _ in 0..<50 {
+            if session.player.currentTime().seconds >= 0.2 { break }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+        XCTAssertGreaterThanOrEqual(session.player.currentTime().seconds, 0.2)
         session.pausePreview()
 
         let firstExport = try XCTUnwrap(session.export(at: output))

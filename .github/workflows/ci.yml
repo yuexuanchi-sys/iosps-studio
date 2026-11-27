@@ -72,6 +72,25 @@ jobs:
             -destination 'platform=macOS' -derivedDataPath "$RUNNER_TEMP/iosps-build" \
             -resultBundlePath "$RUNNER_TEMP/iosps-tests.xcresult" \
             -parallel-testing-enabled NO test
+      - name: Collect AppMac failure evidence
+        if: failure()
+        run: |
+          result="$RUNNER_TEMP/iosps-tests.xcresult"
+          test -d "$result" || exit 0
+          output="$RUNNER_TEMP/iosps-test-failures"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$result" --output-path "$output" --only-failures || true
+          for report in ~/Library/Logs/DiagnosticReports/IOSPS-*.ips; do
+            if [[ -f "$report" ]]; then cp "$report" "$output/"; fi
+          done
+      - name: Upload AppMac failure evidence
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: iosps-macos-test-failures
+          path: ${{ runner.temp }}/iosps-test-failures/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Export AppMac UI evidence
         run: |
           output="$RUNNER_TEMP/iosps-artifacts/license-window"
