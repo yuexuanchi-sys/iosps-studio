@@ -82,9 +82,8 @@ struct VideoEditorView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 10).fill(Color(nsColor: .controlBackgroundColor))
                 if session.hasPreview {
-                    VideoPlayer(player: session.player)
+                    VideoPreview(player: session.player)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .accessibilityIdentifier("video-player")
                 } else {
                     VStack(spacing: 8) {
                         Image(systemName: "film")
@@ -285,6 +284,24 @@ struct VideoEditorView: View {
         panel.beginSheetModal(for: window) { response in
             guard response == .OK, let destination = panel.url else { return }
             if purpose == .project { session.save(at: destination) } else { session.export(at: destination) }
+        }
+    }
+}
+
+private struct VideoPreview: NSViewRepresentable {
+    let player: AVPlayer
+
+    func makeNSView(context: Context) -> AVPlayerView {
+        // The SwiftUI player aborts while loading its view type on the macOS 26.7 runner.
+        let view = AVPlayerView()
+        view.controlsStyle = .inline
+        view.setAccessibilityIdentifier("video-player")
+        return view
+    }
+
+    func updateNSView(_ view: AVPlayerView, context: Context) {
+        if view.player !== player {
+            view.player = player
         }
     }
 }
