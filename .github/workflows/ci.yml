@@ -126,6 +126,18 @@ jobs:
               --output-path "$output/$scenario" --test-id "PhotoMovieRendererTests/$scenario()"
             grep -F 'photo-movie-' "$output/$scenario/manifest.json"
           done
+          output="$RUNNER_TEMP/iosps-artifacts/photo-movie-ui"
+          mkdir -p "$output/session" "$output/ui"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output/session" \
+            --test-id 'PhotoMovieSessionTests/testExportProgressCancellationCorruptAudioAndReadOnlyRecovery()'
+          grep -F 'photo-movie-session-recovered' "$output/session/manifest.json"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output/ui" \
+            --test-id 'PhotoMovieUITests/testToolbarEntryImportReorderSwitchTemplatePreviewAndExport()'
+          grep -F 'photo-movie-preview' "$output/ui/manifest.json"
+          grep -F 'photo-movie-exported-window' "$output/ui/manifest.json"
+          grep -F 'photo-movie-ui-exported' "$output/ui/manifest.json"
       - name: Render greeting and package app
         run: |
           output="$RUNNER_TEMP/iosps-artifacts"
@@ -195,6 +207,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/birthday-celebration/
             ${{ runner.temp }}/iosps-artifacts/video-editor/
             ${{ runner.temp }}/iosps-artifacts/photo-movie/
+            ${{ runner.temp }}/iosps-artifacts/photo-movie-ui/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt
             ${{ runner.temp }}/iosps-artifacts/signature.txt
             ${{ runner.temp }}/iosps-artifacts/build-target.txt

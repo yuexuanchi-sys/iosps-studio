@@ -9,6 +9,7 @@ import SwiftUI
 struct IOSPSApp: App {
     private static let applicationDirectory = URL.applicationSupportDirectory.appending(path: "org.iosps.birthday")
     @State private var session: MediaImportSession
+    @State private var photoMovie: PhotoMovieSession
     @State private var editor: VideoEditingSession
     @State private var birthday = Self.makeBirthdaySession()
     @State private var celebration = BirthdayCelebrationPanel()
@@ -18,12 +19,13 @@ struct IOSPSApp: App {
         let library = MediaLibrary(directory: local.appending(path: "Media", directoryHint: .isDirectory))
         let drafts = FileDraftStore(directory: local.appending(path: "Drafts", directoryHint: .isDirectory))
         _session = State(wrappedValue: MediaImportSession(library: library))
+        _photoMovie = State(wrappedValue: PhotoMovieSession(library: library))
         _editor = State(wrappedValue: VideoEditingSession(library: library, drafts: drafts))
     }
 
     var body: some Scene {
         WindowGroup {
-            MainWindow(session: session, editor: editor, birthday: birthday, celebration: celebration)
+            MainWindow(session: session, photoMovie: photoMovie, editor: editor, birthday: birthday, celebration: celebration)
         }
         .defaultSize(width: 720, height: 480)
         .commands {
@@ -71,10 +73,11 @@ private struct AboutCommands: Commands {
 }
 
 private struct MainWindow: View {
-    private enum Page { case birthday, media, video }
+    private enum Page { case birthday, media, movie, video }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let session: MediaImportSession
+    let photoMovie: PhotoMovieSession
     let editor: VideoEditingSession
     let birthday: BirthdayHomeSession
     let celebration: BirthdayCelebrationPanel
@@ -109,6 +112,8 @@ private struct MainWindow: View {
     private var page: some View {
         if pageSelection == .media {
             MediaImportView(session: session)
+        } else if pageSelection == .movie {
+            PhotoMovieView(session: photoMovie)
         } else if pageSelection == .video {
             VideoEditorView(session: editor)
         } else {
@@ -172,6 +177,19 @@ private struct MainWindow: View {
             }
             .accessibilityIdentifier("shared-media-entry")
             .help(pageSelection == .media ? Text("返回生日主页") : Text("导入素材"))
+        }
+        ToolbarItem(placement: .automatic) {
+            Button {
+                navigate(to: .movie)
+            } label: {
+                if pageSelection == .movie {
+                    Label("返回生日主页", systemImage: "house")
+                } else {
+                    Label("回忆短片", systemImage: "film.stack")
+                }
+            }
+            .accessibilityIdentifier("photo-movie-entry")
+            .help(pageSelection == .movie ? Text("返回生日主页") : Text("回忆短片"))
         }
         ToolbarItem(placement: .automatic) {
             Button {

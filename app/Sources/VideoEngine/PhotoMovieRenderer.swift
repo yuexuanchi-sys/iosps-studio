@@ -162,6 +162,7 @@ public enum PhotoMovieRenderer {
             let totalAudioSamples = timeline.durationFrames * samplesPerVideoFrame
             try writeProcessedWave(from: decodedAudio, totalOutputSamples: totalAudioSamples, to: audioURL)
             try Task.checkCancellation()
+            progress?(0.85)
             let duration = CMTime(value: Int64(timeline.durationFrames), timescale: fps)
             try await mux(videoURL: videoURL, audioURL: audioURL, duration: duration, to: staging)
             try Task.checkCancellation()
@@ -328,6 +329,8 @@ public enum PhotoMovieRenderer {
 
     private static func readAudio(_ music: PhotoMovieMusic, outputFrames: Int) async throws -> DecodedAudio {
         guard music.url.isFileURL else { throw Failure.unreadableAudio }
+        let hasScope = music.url.startAccessingSecurityScopedResource()
+        defer { if hasScope { music.url.stopAccessingSecurityScopedResource() } }
         do {
             let asset = AVURLAsset(url: music.url, options: [
                 AVURLAssetPreferPreciseDurationAndTimingKey: true,
