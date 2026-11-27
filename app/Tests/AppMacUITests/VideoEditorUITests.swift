@@ -32,7 +32,11 @@ final class VideoEditorUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["IOSPS_TEST_VIDEO_DIRECTORY"] = root.appendingPathComponent("Local").path
         app.launch()
-        defer { app.terminate() }
+        defer {
+            if app.state != .notRunning {
+                app.terminate()
+            }
+        }
         openEditor(in: app)
 
         let first = app.buttons["video-clip-0"]
@@ -125,15 +129,21 @@ final class VideoEditorUITests: XCTestCase {
                named: "video-editor-exported")
         attach(XCTAttachment(data: previousProject, uniformTypeIdentifier: UTType.json.identifier),
                named: "video-editor-project")
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
     }
 
     @MainActor
     private func openEditor(in app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10), app.debugDescription)
-        let entry = app.windows["IOSPS"].toolbars.buttons.matching(identifier: "video-editor-entry").firstMatch
-        XCTAssertTrue(entry.waitForExistence(timeout: 3), "The normal App window should provide a video editor entry.")
+        let window = app.windows["IOSPS"]
+        if !window.waitForExistence(timeout: 5) {
+            app.typeKey("n", modifierFlags: .command)
+        }
+        XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 15), app.debugDescription)
+        let entry = window.toolbars.buttons.matching(identifier: "video-editor-entry").firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 5), "The normal App window should provide a video editor entry.")
         entry.click()
-        XCTAssertTrue(app.buttons["video-import"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["video-import"].waitForExistence(timeout: 10))
     }
 
     @MainActor

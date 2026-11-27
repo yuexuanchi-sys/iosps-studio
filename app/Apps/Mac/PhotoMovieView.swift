@@ -32,7 +32,7 @@ struct PhotoMovieView: View {
             feedback
         }
         .padding(16)
-        .frame(minWidth: 640, minHeight: 420)
+        .frame(minWidth: 680, minHeight: 440)
         .onChange(of: session.photos.count) { clampSelection() }
         .onDisappear(perform: session.pausePreview)
         .fileImporter(

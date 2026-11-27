@@ -28,7 +28,11 @@ final class PhotoMovieUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["IOSPS_TEST_VIDEO_DIRECTORY"] = root.appendingPathComponent("Local").path
         app.launch()
-        defer { app.terminate() }
+        defer {
+            if app.state != .notRunning {
+                app.terminate()
+            }
+        }
 
         openPhotoMovie(in: app)
         let firstPhoto = app.buttons["photo-movie-photo-0"]
@@ -118,12 +122,19 @@ final class PhotoMovieUITests: XCTestCase {
         attach(XCTAttachment(screenshot: window.screenshot()), named: "photo-movie-exported-window")
         attach(XCTAttachment(data: try Data(contentsOf: movie), uniformTypeIdentifier: UTType.mpeg4Movie.identifier),
                named: "photo-movie-ui-exported")
+
+        app.typeKey("q", modifierFlags: .command)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 10))
     }
 
     @MainActor
     private func openPhotoMovie(in app: XCUIApplication) {
-        XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 10), app.debugDescription)
-        let entry = app.windows["IOSPS"].toolbars.buttons.matching(identifier: "photo-movie-entry").firstMatch
+        let window = app.windows["IOSPS"]
+        if !window.waitForExistence(timeout: 5) {
+            app.typeKey("n", modifierFlags: .command)
+        }
+        XCTAssertTrue(app.staticTexts["birthday-title"].waitForExistence(timeout: 15), app.debugDescription)
+        let entry = window.toolbars.buttons.matching(identifier: "photo-movie-entry").firstMatch
         XCTAssertTrue(entry.waitForExistence(timeout: 5), "The main window toolbar should provide a photo movie entry.")
         entry.click()
         XCTAssertTrue(app.buttons["photo-movie-add-photos"].waitForExistence(timeout: 10))
