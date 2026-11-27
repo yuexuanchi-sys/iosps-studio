@@ -120,7 +120,7 @@ jobs:
             --output-path "$output" --test-id 'VideoEditorUITests/testFinderImportTrimReorderSaveReopenAndExport()'
           grep -F 'video-editor-exported' "$output/manifest.json"
           output="$RUNNER_TEMP/iosps-artifacts/photo-movie"
-          for scenario in testWritesOrderedPhotosAndHonorsOrientation testWritesAllFiveCameraMotions; do
+          for scenario in testWritesOrderedPhotosAndHonorsOrientation testWritesAllFiveCameraMotions testDissolvesTwoScenesWithExactFrameBoundaries testRendersChineseCaptionsAndPreservesUncaptionedFrames testFailedOrCancelledWritesKeepEarlierMovieAndCanRetry; do
             mkdir -p "$output/$scenario"
             xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
               --output-path "$output/$scenario" --test-id "PhotoMovieRendererTests/$scenario()"

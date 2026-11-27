@@ -53,27 +53,97 @@ final class PhotoMovieRendererTests: XCTestCase {
     }
 
     @MainActor
+    func testDissolvesTwoScenesWithExactFrameBoundaries() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let red = directory.appendingPathComponent("red.jpg")
+        let blue = directory.appendingPathComponent("blue.jpg")
+        try writePhoto(to: red, background: (1, 0, 0))
+        try writePhoto(to: blue, background: (0, 0, 1))
+        let urls = [red, blue]
+        let originalBytes = try urls.map { try Data(contentsOf: $0) }
+        let movie = directory.appendingPathComponent("dissolve.mp4")
+        let dissolveTemplate = try template(scenes: [
+            ["motion": "still", "frames": 30, "transitionFrames": 12],
+            ["motion": "still", "frames": 30, "transitionFrames": 12],
+        ])
+        try await PhotoMovieRenderer.write(photos: urls.map { .init(id: MediaID(), url: $0) },
+                                           template: dissolveTemplate, to: movie)
+        let asset = AVURLAsset(url: movie)
+        let duration = try await asset.load(.duration)
+        let tracks = try await asset.loadTracks(withMediaType: .video)
+        let audio = try await asset.loadTracks(withMediaType: .audio)
+        let track = try XCTUnwrap(tracks.first)
+        XCTAssertEqual(track.naturalSize, CGSize(width: 1920, height: 1080))
+        XCTAssertEqual(duration.seconds, 48.0 / 30.0, accuracy: 0.001)
+        XCTAssertTrue(audio.isEmpty)
+        XCTAssertEqual(try urls.map { try Data(contentsOf: $0) }, originalBytes)
+        try attach(movie, as: "photo-movie-dissolve")
+    }
+
+    @MainActor
+    func testRendersChineseCaptionsAndPreservesUncaptionedFrames() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let first = directory.appendingPathComponent("first.jpg")
+        let second = directory.appendingPathComponent("second.jpg")
+        let third = directory.appendingPathComponent("third.jpg")
+        try writePhoto(to: first, background: (0.05, 0.14, 0.42))
+        try writePhoto(to: second, background: (0.06, 0.36, 0.16))
+        try writePhoto(to: third, background: (0.45, 0.10, 0.14))
+        let urls = [first, second, third]
+        let originalBytes = try urls.map { try Data(contentsOf: $0) }
+        let movie = directory.appendingPathComponent("captions.mp4")
+        let captionedTemplate = try template(scenes: [
+            ["motion": "still", "frames": 18, "transitionFrames": 6, "caption": "生日快乐，拾光留念"],
+            ["motion": "still", "frames": 18, "transitionFrames": 6],
+            ["motion": "still", "frames": 18, "transitionFrames": 0, "caption": "下一段旅程"],
+        ])
+        try await PhotoMovieRenderer.write(photos: urls.map { .init(id: MediaID(), url: $0) },
+                                           template: captionedTemplate, to: movie)
+        let asset = AVURLAsset(url: movie)
+        let duration = try await asset.load(.duration)
+        let tracks = try await asset.loadTracks(withMediaType: .video)
+        let audio = try await asset.loadTracks(withMediaType: .audio)
+        let track = try XCTUnwrap(tracks.first)
+        XCTAssertEqual(track.naturalSize, CGSize(width: 1920, height: 1080))
+        XCTAssertEqual(duration.seconds, 42.0 / 30.0, accuracy: 0.001)
+        XCTAssertTrue(audio.isEmpty)
+        XCTAssertEqual(try urls.map { try Data(contentsOf: $0) }, originalBytes)
+        try attach(movie, as: "photo-movie-captions")
+    }
+
+    @MainActor
     func testFailedOrCancelledWritesKeepEarlierMovieAndCanRetry() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let photo = directory.appendingPathComponent("photo.jpg")
+        let secondPhoto = directory.appendingPathComponent("second.jpg")
         let outputs = directory.appendingPathComponent("Outputs")
         try FileManager.default.createDirectory(at: outputs, withIntermediateDirectories: false)
         try writePhoto(to: photo, background: (0, 1, 0))
+        try writePhoto(to: secondPhoto, background: (0, 0, 1))
+        let originalFirst = try Data(contentsOf: photo)
+        let originalSecond = try Data(contentsOf: secondPhoto)
         let input = PhotoMovieInput(id: MediaID(), url: photo)
+        let secondInput = PhotoMovieInput(id: MediaID(), url: secondPhoto)
         let movie = outputs.appendingPathComponent("saved.mp4")
         let still = try template(motions: ["still"], frames: 6)
+        let dissolveCaption = try template(scenes: [
+            ["motion": "still", "frames": 30, "transitionFrames": 12, "caption": "重试后的祝福"],
+            ["motion": "still", "frames": 30, "transitionFrames": 0],
+        ])
         try await PhotoMovieRenderer.write(photos: [input], template: still, to: movie)
         let successful = try Data(contentsOf: movie)
 
         do {
-            try await PhotoMovieRenderer.write(photos: [], template: still, to: movie)
+            try await PhotoMovieRenderer.write(photos: [], template: dissolveCaption, to: movie)
             XCTFail("An empty shot sequence must fail")
         } catch PhotoMovieRenderer.Failure.emptyInput {}
         let corrupt = PhotoMovieInput(id: MediaID(), url: directory.appendingPathComponent("corrupt.jpg"))
         try Data("Not a photo".utf8).write(to: corrupt.url)
         do {
-            try await PhotoMovieRenderer.write(photos: [input, corrupt], template: still, to: movie)
+            try await PhotoMovieRenderer.write(photos: [input, corrupt], template: dissolveCaption, to: movie)
             XCTFail("An unreadable shot must fail")
         } catch PhotoMovieRenderer.Failure.unreadablePhoto(let id) {
             XCTAssertEqual(id, corrupt.id)
@@ -91,15 +161,19 @@ final class PhotoMovieRendererTests: XCTestCase {
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: outputs.path)
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: outputs.path) }
         do {
-            try await PhotoMovieRenderer.write(photos: [input], template: still, to: movie)
+            try await PhotoMovieRenderer.write(photos: [input, secondInput], template: dissolveCaption, to: movie)
             XCTFail("The destination directory is read-only")
         } catch PhotoMovieRenderer.Failure.invalidDestination {}
         XCTAssertEqual(try Data(contentsOf: movie), successful)
+
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: outputs.path)
-        try await PhotoMovieRenderer.write(photos: [input, input], template: still, to: movie)
+        try await PhotoMovieRenderer.write(photos: [input, secondInput], template: dissolveCaption, to: movie)
         let duration = try await AVURLAsset(url: movie).load(.duration)
-        XCTAssertEqual(duration.seconds, 12.0 / 30.0, accuracy: 0.001)
+        XCTAssertEqual(duration.seconds, 48.0 / 30.0, accuracy: 0.001)
+        XCTAssertEqual(try Data(contentsOf: photo), originalFirst)
+        XCTAssertEqual(try Data(contentsOf: secondPhoto), originalSecond)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: outputs.path), ["saved.mp4"])
+        try attach(movie, as: "photo-movie-retry")
     }
 
     private func makeDirectory() throws -> URL {
@@ -110,6 +184,10 @@ final class PhotoMovieRendererTests: XCTestCase {
 
     private func template(motions: [String], frames: Int) throws -> MemoryTemplate {
         let scenes: [[String: Any]] = motions.map { ["motion": $0, "frames": frames, "transitionFrames": 0] }
+        return try template(scenes: scenes)
+    }
+
+    private func template(scenes: [[String: Any]]) throws -> MemoryTemplate {
         let data = try JSONSerialization.data(withJSONObject: ["formatVersion": 1, "id": "synthetic",
                                                                  "name": "Synthetic", "scenes": scenes])
         return try JSONDecoder().decode(MemoryTemplate.self, from: data)
