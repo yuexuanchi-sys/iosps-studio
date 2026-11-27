@@ -30,6 +30,7 @@ final class VideoEditorUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchEnvironment["IOSPS_TEST_VIDEO_DIRECTORY"] = root.appendingPathComponent("Local").path
         app.launch()
+        defer { app.terminate() }
         openEditor(in: app)
 
         let first = app.buttons["video-clip-0"]
@@ -42,16 +43,20 @@ final class VideoEditorUITests: XCTestCase {
         XCTAssertFalse(first.exists)
 
         app.buttons["video-import"].click()
-        XCTAssertTrue(picker.waitForExistence(timeout: 5))
-        goTo(inputs, in: app)
-        // Finder may use a column view whose accessibility elements extend off-screen.
-        app.typeKey(.downArrow, modifierFlags: [])
-        app.typeKey("a", modifierFlags: .command)
-        confirm(picker, in: app)
+        choose(inputs.appendingPathComponent("source-a.mov"), in: app)
+        XCTAssertTrue(first.waitForExistence(timeout: 15))
+        app.buttons["video-import"].click()
+        choose(inputs.appendingPathComponent("source-b.mp4"), in: app)
         XCTAssertTrue(second.waitForExistence(timeout: 15))
         XCTAssertTrue(first.label.contains("source-a.mov"), first.debugDescription)
         XCTAssertTrue(second.label.contains("source-b.mp4"), second.debugDescription)
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "corrupt.mov")).firstMatch.exists)
+        app.buttons["video-import"].click()
+        choose(inputs.appendingPathComponent("corrupt.mov"), in: app)
+        let issue = app.staticTexts.matching(NSPredicate(
+            format: "label CONTAINS %@ OR value CONTAINS %@", "corrupt.mov", "corrupt.mov"
+        )).firstMatch
+        XCTAssertTrue(issue.waitForExistence(timeout: 10))
+        XCTAssertTrue(second.exists)
 
         first.click()
         replaceText(in: app.textFields["video-trim-end"], with: "30", app: app)
@@ -82,10 +87,7 @@ final class VideoEditorUITests: XCTestCase {
         openEditor(in: app)
         XCTAssertFalse(first.exists)
         app.buttons["video-open"].click()
-        XCTAssertTrue(picker.waitForExistence(timeout: 5))
-        goTo(outputs, in: app)
-        app.typeKey(.downArrow, modifierFlags: [])
-        confirm(picker, in: app)
+        choose(project, in: app)
         XCTAssertTrue(second.waitForExistence(timeout: 15))
         XCTAssertTrue(first.label.contains("source-b.mp4"))
         XCTAssertTrue(second.label.contains("source-a.mov"))
@@ -118,10 +120,19 @@ final class VideoEditorUITests: XCTestCase {
     }
 
     @MainActor
-    private func goTo(_ directory: URL, in app: XCUIApplication) {
+    private func goTo(_ url: URL, in app: XCUIApplication) {
         app.typeKey("g", modifierFlags: [.command, .shift])
-        app.typeText(directory.path)
+        app.typeText(url.path)
         app.typeKey(.return, modifierFlags: [])
+    }
+
+    @MainActor
+    private func choose(_ url: URL, in app: XCUIApplication) {
+        let panel = app.sheets["open-panel"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        goTo(url, in: app)
+        confirm(panel)
+        XCTAssertTrue(panel.waitForNonExistence(timeout: 5))
     }
 
     @MainActor
@@ -138,7 +149,7 @@ final class VideoEditorUITests: XCTestCase {
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
         goTo(url.deletingLastPathComponent(), in: app)
         replaceText(in: panel.textFields.firstMatch, with: url.lastPathComponent, app: app)
-        confirm(panel, in: app)
+        confirm(panel)
         let written = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             FileManager.default.fileExists(atPath: url.path)
         }, object: nil)
@@ -146,11 +157,11 @@ final class VideoEditorUITests: XCTestCase {
     }
 
     @MainActor
-    private func confirm(_ panel: XCUIElement, in app: XCUIApplication) {
+    private func confirm(_ panel: XCUIElement) {
         let button = panel.buttons["OKButton"]
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND enabled == true"), object: button)
         XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed, panel.debugDescription)
-        app.typeKey(.return, modifierFlags: [])
+        button.click()
     }
 
     @MainActor
