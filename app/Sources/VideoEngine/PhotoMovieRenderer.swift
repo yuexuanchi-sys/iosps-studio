@@ -1,4 +1,3 @@
-import AudioToolbox
 import AVFoundation
 import BirthdayCore
 import CoreGraphics
@@ -91,7 +90,7 @@ public enum PhotoMovieRenderer {
     private static let fps = CMTimeScale(VideoTiming.framesPerSecond)
     private static let audioSampleRate = 44_100
     private static let audioChannels = 2
-    // 44,100 / 30 = 1,470 samples per video frame so video and audio stay lock-stepped with zero drift.
+    // 44,100 / 30 = 1,470 audio samples per video frame on the shared 30 fps grid.
     private static let samplesPerVideoFrame = audioSampleRate / VideoTiming.framesPerSecond
     private static let motionScale: CGFloat = 1.12
 
@@ -140,7 +139,61 @@ public enum PhotoMovieRenderer {
 
         let staging = EscrituraAtomica.temporal(para: destination)
         defer { try? FileManager.default.removeItem(at: staging) }
-        let writer = try AVAssetWriter(outputURL: staging, fileType: .mp4)
+
+        if let decodedAudio {
+            let scratch = FileManager.default.temporaryDirectory
+                .appendingPathComponent("iosps-movie-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: scratch) }
+
+            let videoURL = scratch.appendingPathComponent("video.mp4")
+            let audioURL = scratch.appendingPathComponent("audio.wav")
+            progress?(0)
+            try await writeSilentVideo(
+                photos: photos,
+                scenes: scenes,
+                shotFrames: shotFrames,
+                timeline: timeline,
+                to: videoURL,
+                progressRange: 0.0...0.8,
+                progress: progress
+            )
+            try Task.checkCancellation()
+            let totalAudioSamples = timeline.durationFrames * samplesPerVideoFrame
+            try writeProcessedWave(from: decodedAudio, totalOutputSamples: totalAudioSamples, to: audioURL)
+            try Task.checkCancellation()
+            let duration = CMTime(value: Int64(timeline.durationFrames), timescale: fps)
+            try await mux(videoURL: videoURL, audioURL: audioURL, duration: duration, to: staging)
+            try Task.checkCancellation()
+            try EscrituraAtomica.instalar(staging, en: destination)
+            progress?(1)
+        } else {
+            progress?(0)
+            try await writeSilentVideo(
+                photos: photos,
+                scenes: scenes,
+                shotFrames: shotFrames,
+                timeline: timeline,
+                to: staging,
+                progressRange: 0.0...1.0,
+                progress: progress
+            )
+            try Task.checkCancellation()
+            try EscrituraAtomica.instalar(staging, en: destination)
+            progress?(1)
+        }
+    }
+
+    private static func writeSilentVideo(
+        photos: [PhotoMovieInput],
+        scenes: [TemplateScene],
+        shotFrames: [Int],
+        timeline: Timeline,
+        to outputURL: URL,
+        progressRange: ClosedRange<Double>,
+        progress: (@Sendable (Double) -> Void)?
+    ) async throws {
+        let writer = try AVAssetWriter(outputURL: outputURL, fileType: .mp4)
         let videoSettings: [String: Any] = [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: width,
@@ -159,29 +212,6 @@ public enum PhotoMovieRenderer {
         ])
         guard writer.canAdd(videoInput) else { throw Failure.encoderUnavailable }
         writer.add(videoInput)
-
-        let audioInput: AVAssetWriterInput?
-        let audioFormatDescription: CMAudioFormatDescription?
-        if decodedAudio != nil {
-            let audioSettings: [String: Any] = [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVSampleRateKey: audioSampleRate,
-                AVNumberOfChannelsKey: audioChannels,
-                AVEncoderBitRateKey: 128_000,
-            ]
-            guard writer.canApply(outputSettings: audioSettings, forMediaType: .audio) else {
-                throw Failure.encoderUnavailable
-            }
-            let input = AVAssetWriterInput(mediaType: .audio, outputSettings: audioSettings)
-            guard writer.canAdd(input) else { throw Failure.encoderUnavailable }
-            writer.add(input)
-            audioInput = input
-            audioFormatDescription = try makePCMFormatDescription()
-        } else {
-            audioInput = nil
-            audioFormatDescription = nil
-        }
-
         writer.movieTimeScale = fps
         guard writer.startWriting() else { throw writer.error ?? Failure.encoderUnavailable }
         defer { if writer.status == .writing { writer.cancelWriting() } }
@@ -191,10 +221,8 @@ public enum PhotoMovieRenderer {
         // Keep at most the two adjacent shots in memory during a cross-dissolve.
         var loadedImages: [Int: CGImage] = [:]
         var cursor = 0
-        let totalAudioSamples = timeline.durationFrames * samplesPerVideoFrame
-        var audioScratch = [Float](repeating: 0, count: samplesPerVideoFrame * audioChannels)
         let clock = ContinuousClock()
-        progress?(0)
+        let span = progressRange.upperBound - progressRange.lowerBound
         for outputFrame in 0..<timeline.durationFrames {
             try Task.checkCancellation()
             while cursor < photos.count,
@@ -242,57 +270,59 @@ public enum PhotoMovieRenderer {
                 overlay = nil
             }
 
-            try await waitUntilReady(videoInput, writer: writer, clock: clock)
+            let deadline = clock.now.advanced(by: .seconds(10))
+            while !videoInput.isReadyForMoreMediaData {
+                try Task.checkCancellation()
+                guard writer.status == .writing, clock.now < deadline else {
+                    throw writer.error ?? Failure.incompleteWrite
+                }
+                try await Task.sleep(for: .milliseconds(5))
+            }
             let frame = try makeFrame(primary: primaryShot, overlay: overlay, in: pool)
             let time = CMTime(value: Int64(outputFrame), timescale: fps)
             guard adaptor.append(frame, withPresentationTime: time) else {
                 throw writer.error ?? Failure.incompleteWrite
             }
-
-            if let decodedAudio, let audioInput, let audioFormatDescription {
-                let startSample = outputFrame * samplesPerVideoFrame
-                fillAudioChunk(
-                    into: &audioScratch,
-                    from: decodedAudio,
-                    outputStartSample: startSample,
-                    totalOutputSamples: totalAudioSamples
-                )
-                try await waitUntilReady(audioInput, writer: writer, clock: clock)
-                let sampleBuffer = try makeAudioSampleBuffer(
-                    samples: audioScratch,
-                    frameCount: samplesPerVideoFrame,
-                    presentationSampleIndex: Int64(startSample),
-                    formatDescription: audioFormatDescription
-                )
-                guard audioInput.append(sampleBuffer) else {
-                    throw writer.error ?? Failure.incompleteWrite
-                }
-            }
-            progress?(Double(outputFrame + 1) / Double(timeline.durationFrames))
+            let fraction = Double(outputFrame + 1) / Double(timeline.durationFrames)
+            progress?(progressRange.lowerBound + span * fraction)
         }
         try Task.checkCancellation()
         writer.endSession(atSourceTime: CMTime(value: Int64(timeline.durationFrames), timescale: fps))
         videoInput.markAsFinished()
-        audioInput?.markAsFinished()
         await writer.finishWriting()
         try Task.checkCancellation()
         guard writer.status == .completed else { throw writer.error ?? Failure.incompleteWrite }
-        try EscrituraAtomica.instalar(staging, en: destination)
-        progress?(1)
     }
 
-    private static func waitUntilReady(
-        _ input: AVAssetWriterInput,
-        writer: AVAssetWriter,
-        clock: ContinuousClock
-    ) async throws {
-        let deadline = clock.now.advanced(by: .seconds(10))
-        while !input.isReadyForMoreMediaData {
-            try Task.checkCancellation()
-            guard writer.status == .writing, clock.now < deadline else {
-                throw writer.error ?? Failure.incompleteWrite
+    /// Muxes the encoded video track and faded stereo PCM soundtrack via AVAssetExportSession
+    /// to avoid dual-input interleaving stalls in headless AVAssetWriter AAC encoding.
+    private static func mux(videoURL: URL, audioURL: URL, duration: CMTime, to destination: URL) async throws {
+        let composition = AVMutableComposition()
+        let videoAsset = AVURLAsset(url: videoURL)
+        let audioAsset = AVURLAsset(url: audioURL)
+        guard let sourceVideo = try await videoAsset.loadTracks(withMediaType: .video).first,
+              let sourceAudio = try await audioAsset.loadTracks(withMediaType: .audio).first,
+              let compositionVideo = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid),
+              let compositionAudio = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            throw Failure.encoderUnavailable
+        }
+        let range = CMTimeRange(start: .zero, duration: duration)
+        try compositionVideo.insertTimeRange(range, of: sourceVideo, at: .zero)
+        try compositionAudio.insertTimeRange(range, of: sourceAudio, at: .zero)
+
+        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
+            throw Failure.encoderUnavailable
+        }
+        try Task.checkCancellation()
+        if #available(macOS 15.0, *) {
+            try await session.export(to: destination, as: .mp4)
+        } else {
+            session.outputURL = destination
+            session.outputFileType = .mp4
+            await session.export()
+            if session.status != .completed {
+                throw session.error ?? Failure.incompleteWrite
             }
-            try await Task.sleep(for: .milliseconds(5))
         }
     }
 
@@ -369,102 +399,66 @@ public enum PhotoMovieRenderer {
         }
     }
 
-    private static func fillAudioChunk(
-        into buffer: inout [Float],
+    private static func writeProcessedWave(
         from audio: DecodedAudio,
-        outputStartSample: Int,
-        totalOutputSamples: Int
-    ) {
+        totalOutputSamples: Int,
+        to url: URL
+    ) throws {
+        let bitsPerSample = 16
+        let bytesPerSample = bitsPerSample / 8
+        let dataByteCount = totalOutputSamples * audioChannels * bytesPerSample
+        let headerByteCount = 44
+        var bytes = [UInt8](repeating: 0, count: headerByteCount + dataByteCount)
+
+        func writeASCII(_ text: String, at offset: Int) {
+            for (index, byte) in text.utf8.enumerated() {
+                bytes[offset + index] = byte
+            }
+        }
+        func writeUInt32(_ value: UInt32, at offset: Int) {
+            bytes[offset] = UInt8(value & 0xFF)
+            bytes[offset + 1] = UInt8((value >> 8) & 0xFF)
+            bytes[offset + 2] = UInt8((value >> 16) & 0xFF)
+            bytes[offset + 3] = UInt8((value >> 24) & 0xFF)
+        }
+        func writeUInt16(_ value: UInt16, at offset: Int) {
+            bytes[offset] = UInt8(value & 0xFF)
+            bytes[offset + 1] = UInt8((value >> 8) & 0xFF)
+        }
+
+        let byteRate = UInt32(audioSampleRate * audioChannels * bytesPerSample)
+        let blockAlign = UInt16(audioChannels * bytesPerSample)
+        writeASCII("RIFF", at: 0)
+        writeUInt32(UInt32(36 + dataByteCount), at: 4)
+        writeASCII("WAVE", at: 8)
+        writeASCII("fmt ", at: 12)
+        writeUInt32(16, at: 16)
+        writeUInt16(1, at: 20)
+        writeUInt16(UInt16(audioChannels), at: 22)
+        writeUInt32(UInt32(audioSampleRate), at: 24)
+        writeUInt32(byteRate, at: 28)
+        writeUInt16(blockAlign, at: 32)
+        writeUInt16(UInt16(bitsPerSample), at: 34)
+        writeASCII("data", at: 36)
+        writeUInt32(UInt32(dataByteCount), at: 40)
+
         let source = audio.interleavedStereo
         let plan = audio.plan
-        for localIndex in 0..<samplesPerVideoFrame {
-            let outputSample = outputStartSample + localIndex
+        var writeOffset = headerByteCount
+        for outputSample in 0..<totalOutputSamples {
             let gain = Float(plan.gain(atSample: outputSample, totalSamples: totalOutputSamples, sampleRate: audioSampleRate))
             let sourceSample = plan.sourceSampleOffset(forOutputSample: outputSample, sampleRate: audioSampleRate)
             let sourceBase = sourceSample * audioChannels
-            let destBase = localIndex * audioChannels
-            buffer[destBase] = source[sourceBase] * gain
-            buffer[destBase + 1] = source[sourceBase + 1] * gain
+            for channel in 0..<audioChannels {
+                let clamped = min(max(source[sourceBase + channel] * gain, -1.0), 1.0)
+                let quantized = Int16((clamped * Float(Int16.max)).rounded())
+                let pattern = UInt16(bitPattern: quantized)
+                bytes[writeOffset] = UInt8(pattern & 0xFF)
+                bytes[writeOffset + 1] = UInt8((pattern >> 8) & 0xFF)
+                writeOffset += 2
+            }
         }
-    }
-
-    private static func makePCMFormatDescription() throws -> CMAudioFormatDescription {
-        var asbd = AudioStreamBasicDescription(
-            mSampleRate: Double(audioSampleRate),
-            mFormatID: kAudioFormatLinearPCM,
-            mFormatFlags: kAudioFormatFlagIsFloat | kAudioFormatFlagIsPacked,
-            mBytesPerPacket: UInt32(audioChannels * MemoryLayout<Float>.size),
-            mFramesPerPacket: 1,
-            mBytesPerFrame: UInt32(audioChannels * MemoryLayout<Float>.size),
-            mChannelsPerFrame: UInt32(audioChannels),
-            mBitsPerChannel: 32,
-            mReserved: 0
-        )
-        var description: CMAudioFormatDescription?
-        let status = CMAudioFormatDescriptionCreate(
-            allocator: kCFAllocatorDefault,
-            asbd: &asbd,
-            layoutSize: 0,
-            layout: nil,
-            magicCookieSize: 0,
-            magicCookie: nil,
-            extensions: nil,
-            formatDescriptionOut: &description
-        )
-        guard status == noErr, let description else {
-            throw Failure.encoderUnavailable
-        }
-        return description
-    }
-
-    private static func makeAudioSampleBuffer(
-        samples: [Float],
-        frameCount: Int,
-        presentationSampleIndex: Int64,
-        formatDescription: CMAudioFormatDescription
-    ) throws -> CMSampleBuffer {
-        let byteCount = frameCount * audioChannels * MemoryLayout<Float>.size
-        var blockBuffer: CMBlockBuffer?
-        let allocStatus = CMBlockBufferCreateWithMemoryBlock(
-            allocator: kCFAllocatorDefault,
-            memoryBlock: nil,
-            blockLength: byteCount,
-            blockAllocator: kCFAllocatorDefault,
-            customBlockSource: nil,
-            offsetToData: 0,
-            dataLength: byteCount,
-            flags: kCMBlockBufferAssureMemoryNowFlag,
-            blockBufferOut: &blockBuffer
-        )
-        guard allocStatus == kCMBlockBufferNoErr, let blockBuffer else {
-            throw Failure.frameAllocation
-        }
-        let copyStatus = samples.withUnsafeBytes { raw in
-            CMBlockBufferReplaceDataBytes(
-                with: raw.baseAddress!,
-                blockBuffer: blockBuffer,
-                offsetIntoDestination: 0,
-                dataLength: byteCount
-            )
-        }
-        guard copyStatus == kCMBlockBufferNoErr else {
-            throw Failure.frameAllocation
-        }
-        var sampleBuffer: CMSampleBuffer?
-        let pts = CMTime(value: presentationSampleIndex, timescale: CMTimeScale(audioSampleRate))
-        let sampleStatus = CMAudioSampleBufferCreateReadyWithPacketDescriptions(
-            allocator: kCFAllocatorDefault,
-            dataBuffer: blockBuffer,
-            formatDescription: formatDescription,
-            sampleCount: frameCount,
-            presentationTimeStamp: pts,
-            packetDescriptions: nil,
-            sampleBufferOut: &sampleBuffer
-        )
-        guard sampleStatus == noErr, let sampleBuffer else {
-            throw Failure.frameAllocation
-        }
-        return sampleBuffer
+        try Data(bytes).write(to: url, options: .atomic)
     }
 
     private static func readPhoto(_ photo: PhotoMovieInput) throws -> CGImage {
