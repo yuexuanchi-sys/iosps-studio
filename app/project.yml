@@ -50,6 +50,9 @@ targets:
     sources:
       - Tests/AppMacTests
       - Tests/MediaIOTests/SyntheticMediaFixtures.swift
+      - path: Tests/VideoEditorFixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: AppMac
     settings:
@@ -64,6 +67,9 @@ targets:
     platform: macOS
     sources:
       - Tests/AppMacUITests
+      - path: Tests/VideoEditorFixtures
+        type: folder
+        buildPhase: resources
     dependencies:
       - target: AppMac
     settings:

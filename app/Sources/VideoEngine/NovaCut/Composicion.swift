@@ -154,6 +154,7 @@ struct MedioResuelto {
     /// nadie nota nada). Se leen todos los tiempos de presentación —solo
     /// demultiplexa, no decodifica— para no perder un hueco que esté después de
     /// la ventana inicial.
+    @MainActor
     static func esCadenciaVFR(pista: AVAssetTrack) async -> Bool {
         guard let marcas = await marcasDePresentacion(pista: pista),
               let resumen = resumenDePTS(marcas) else {
@@ -170,6 +171,7 @@ struct MedioResuelto {
     /// Lee los PTS sin decodificar imágenes. El resultado se ordena porque los
     /// samples comprimidos pueden entregarse en orden de decode y no de
     /// presentación.
+    @MainActor
     static func marcasDePresentacion(pista: AVAssetTrack) async -> [Double]? {
         guard let asset = pista.asset,
               let lector = try? AVAssetReader(asset: asset) else { return nil }
@@ -182,6 +184,13 @@ struct MedioResuelto {
         while lector.status == .reading, let buffer = salida.copyNextSampleBuffer() {
             let tiempo = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(buffer))
             if tiempo.isFinite { pts.append(tiempo) }
+            if pts.count.isMultiple(of: 256) {
+                if Task.isCancelled {
+                    lector.cancelReading()
+                    return nil
+                }
+                await Task.yield()
+            }
         }
         let lecturaCompleta = lector.status == .completed
         lector.cancelReading()

@@ -55,14 +55,17 @@ public final class VideoMontage {
             let id = clip.media.rawValue
             resolved[id] = source.source
             let name = source.source.url.lastPathComponent
+            let outputStart = Int64(position)
+            let sourceStart = Int64(clip.startFrame)
+            let length = Int64(clip.frameCount)
             composition.sobrescribir(
-                Clip(mediaID: id, nombre: name, inicio: position, duracion: clip.frameCount, entradaEnOrigen: clip.startFrame),
-                enPista: video, en: position
+                Clip(mediaID: id, nombre: name, inicio: outputStart, duracion: length, entradaEnOrigen: sourceStart),
+                enPista: video, en: outputStart
             )
             if source.source.tieneAudio {
                 composition.sobrescribir(
-                    Clip(mediaID: id, nombre: name, inicio: position, duracion: clip.frameCount, entradaEnOrigen: clip.startFrame),
-                    enPista: audio, en: position
+                    Clip(mediaID: id, nombre: name, inicio: outputStart, duracion: length, entradaEnOrigen: sourceStart),
+                    enPista: audio, en: outputStart
                 )
             }
         }
