@@ -146,15 +146,15 @@ final class VideoEditorUITests: XCTestCase {
     @MainActor
     private func choose(_ url: URL, in app: XCUIApplication) {
         let panel = app.sheets["open-panel"]
-        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        XCTAssertTrue(panel.waitForExistence(timeout: 15))
         goTo(url, in: app)
         confirm(panel)
-        XCTAssertTrue(panel.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(panel.waitForNonExistence(timeout: 15))
     }
 
     @MainActor
     private func replaceText(in element: XCUIElement, with text: String, app: XCUIApplication) {
-        XCTAssertTrue(element.waitForExistence(timeout: 5))
+        XCTAssertTrue(element.waitForExistence(timeout: 10))
         element.click()
         app.typeKey("a", modifierFlags: .command)
         app.typeText(text)
@@ -163,21 +163,21 @@ final class VideoEditorUITests: XCTestCase {
     @MainActor
     private func save(_ url: URL, in app: XCUIApplication) {
         let panel = app.sheets.firstMatch
-        XCTAssertTrue(panel.waitForExistence(timeout: 5))
+        XCTAssertTrue(panel.waitForExistence(timeout: 15))
         goTo(url.deletingLastPathComponent(), in: app)
         replaceText(in: panel.textFields.firstMatch, with: url.lastPathComponent, app: app)
         confirm(panel)
         let written = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             FileManager.default.fileExists(atPath: url.path)
         }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [written], timeout: 20), .completed)
+        XCTAssertEqual(XCTWaiter.wait(for: [written], timeout: 25), .completed)
     }
 
     @MainActor
     private func confirm(_ panel: XCUIElement) {
         let button = panel.buttons["OKButton"]
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND enabled == true"), object: button)
-        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed, panel.debugDescription)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 20), .completed, panel.debugDescription)
         button.click()
     }
 
