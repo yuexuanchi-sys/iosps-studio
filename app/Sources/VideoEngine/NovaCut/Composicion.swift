@@ -124,7 +124,10 @@ struct MedioResuelto {
 
     @MainActor
     static func cargar(id: UUID, url: URL) async throws -> MedioResuelto {
-        let asset = AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
+        let asset = AVURLAsset(url: url, options: [
+            AVURLAssetPreferPreciseDurationAndTimingKey: true,
+            AVURLAssetReferenceRestrictionsKey: NSNumber(value: AVAssetReferenceRestrictions.forbidAll.rawValue),
+        ])
         let duracion = try await asset.load(.duration)
         let video = try await asset.loadTracks(withMediaType: .video).first
         let audio = try await asset.loadTracks(withMediaType: .audio).first
@@ -251,7 +254,9 @@ struct MedioResuelto {
     /// Lee a 8 kHz y por bloques, por lo que no carga el archivo entero en memoria.
     static func formaDeOnda(url: URL, puntos: Int = 160) async -> [Float]? {
         guard puntos > 0 else { return nil }
-        let asset = AVURLAsset(url: url)
+        let asset = AVURLAsset(url: url, options: [
+            AVURLAssetReferenceRestrictionsKey: NSNumber(value: AVAssetReferenceRestrictions.forbidAll.rawValue),
+        ])
         guard let pista = (try? await asset.loadTracks(withMediaType: .audio))?.first,
               let lector = try? AVAssetReader(asset: asset) else { return nil }
 

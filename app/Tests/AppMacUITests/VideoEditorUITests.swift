@@ -44,9 +44,10 @@ final class VideoEditorUITests: XCTestCase {
         app.buttons["video-import"].click()
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         goTo(inputs, in: app)
-        namedFile("source-a.mov", in: picker).click()
+        // Finder may use a column view whose accessibility elements extend off-screen.
+        app.typeKey(.downArrow, modifierFlags: [])
         app.typeKey("a", modifierFlags: .command)
-        confirm(picker.buttons["OKButton"])
+        confirm(picker, in: app)
         XCTAssertTrue(second.waitForExistence(timeout: 15))
         XCTAssertTrue(first.label.contains("source-a.mov"), first.debugDescription)
         XCTAssertTrue(second.label.contains("source-b.mp4"), second.debugDescription)
@@ -83,8 +84,8 @@ final class VideoEditorUITests: XCTestCase {
         app.buttons["video-open"].click()
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         goTo(outputs, in: app)
-        namedFile(project.lastPathComponent, in: picker).click()
-        confirm(picker.buttons["OKButton"])
+        app.typeKey(.downArrow, modifierFlags: [])
+        confirm(picker, in: app)
         XCTAssertTrue(second.waitForExistence(timeout: 15))
         XCTAssertTrue(first.label.contains("source-b.mp4"))
         XCTAssertTrue(second.label.contains("source-a.mov"))
@@ -124,14 +125,6 @@ final class VideoEditorUITests: XCTestCase {
     }
 
     @MainActor
-    private func namedFile(_ filename: String, in panel: XCUIElement) -> XCUIElement {
-        let element = panel.descendants(matching: .any)
-            .matching(NSPredicate(format: "label == %@ OR value == %@", filename, filename)).firstMatch
-        XCTAssertTrue(element.waitForExistence(timeout: 5), panel.debugDescription)
-        return element
-    }
-
-    @MainActor
     private func replaceText(in element: XCUIElement, with text: String, app: XCUIApplication) {
         XCTAssertTrue(element.waitForExistence(timeout: 5))
         element.click()
@@ -145,7 +138,7 @@ final class VideoEditorUITests: XCTestCase {
         XCTAssertTrue(panel.waitForExistence(timeout: 5))
         goTo(url.deletingLastPathComponent(), in: app)
         replaceText(in: panel.textFields.firstMatch, with: url.lastPathComponent, app: app)
-        confirm(panel.buttons["OKButton"])
+        confirm(panel, in: app)
         let written = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
             FileManager.default.fileExists(atPath: url.path)
         }, object: nil)
@@ -153,10 +146,11 @@ final class VideoEditorUITests: XCTestCase {
     }
 
     @MainActor
-    private func confirm(_ button: XCUIElement) {
+    private func confirm(_ panel: XCUIElement, in app: XCUIApplication) {
+        let button = panel.buttons["OKButton"]
         let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND enabled == true"), object: button)
-        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed)
-        button.click()
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 5), .completed, panel.debugDescription)
+        app.typeKey(.return, modifierFlags: [])
     }
 
     @MainActor
