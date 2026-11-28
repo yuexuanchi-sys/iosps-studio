@@ -40,21 +40,25 @@ final class PhotoMemorySessionTests: XCTestCase {
         editor.onSubstantiveProjectSaved = { event in _ = memories.handleProjectSaved(event) }
 
         // Save Photo A (2:1 crop -> 160x80).
-        XCTAssertTrue(await editor.importPhoto(from: photoA))
+        let importedA = await editor.importPhoto(from: photoA)
+        XCTAssertTrue(importedA)
         editor.beginCrop(aspectChoice: "2:1")
         await editor.commitCrop()
         let compA = projectsDir.appendingPathComponent("work-a.comp", isDirectory: true)
-        XCTAssertTrue(await editor.saveProject(to: compA))
+        let savedA = await editor.saveProject(to: compA)
+        XCTAssertTrue(savedA)
         await memories.waitForInFlightPublications()
         let idA = try XCTUnwrap(editor.currentProjectReference?.projectID)
 
         // Save Photo B later (1:1 crop -> 120x120).
         clock.advance(by: 60)
-        XCTAssertTrue(await editor.importPhoto(from: photoB))
+        let importedB = await editor.importPhoto(from: photoB)
+        XCTAssertTrue(importedB)
         editor.beginCrop(aspectChoice: "1:1")
         await editor.commitCrop()
         let compB = projectsDir.appendingPathComponent("work-b.comp", isDirectory: true)
-        XCTAssertTrue(await editor.saveProject(to: compB))
+        let savedB = await editor.saveProject(to: compB)
+        XCTAssertTrue(savedB)
         await memories.waitForInFlightPublications()
         let idB = try XCTUnwrap(editor.currentProjectReference?.projectID)
 
@@ -71,14 +75,16 @@ final class PhotoMemorySessionTests: XCTestCase {
         )
         restartedEditor.onSubstantiveProjectSaved = { event in _ = restartedMemories.handleProjectSaved(event) }
         let entryA = try XCTUnwrap(restartedMemories.items.first { $0.id == idA })
-        XCTAssertTrue(await restartedEditor.openProject(reference: PhotoProjectReference(projectID: entryA.id, fileURL: entryA.projectURL)))
+        let reopenedA = await restartedEditor.openProject(reference: PhotoProjectReference(projectID: entryA.id, fileURL: entryA.projectURL))
+        XCTAssertTrue(reopenedA)
         XCTAssertEqual(restartedEditor.pixelWidth, 160)
         XCTAssertEqual(restartedEditor.pixelHeight, 80)
 
         // Re-edit A (rotate 90 -> 80x160) and save -> updates preview & timestamp, moves A above B with NO duplicate.
         clock.advance(by: 120)
         restartedEditor.rotateClockwise()
-        XCTAssertTrue(await restartedEditor.saveProject())
+        let resavedA = await restartedEditor.saveProject()
+        XCTAssertTrue(resavedA)
         await restartedMemories.waitForInFlightPublications()
         XCTAssertEqual(restartedMemories.items.count, 2)
         XCTAssertEqual(restartedMemories.items.map(\.id), [idA, idB])
@@ -87,7 +93,8 @@ final class PhotoMemorySessionTests: XCTestCase {
 
         // Save As independent project at the EXACT SAME timestamp -> creates 3rd entry sorted deterministically by ProjectID.
         let compC = projectsDir.appendingPathComponent("work-c.comp", isDirectory: true)
-        XCTAssertTrue(await restartedEditor.saveProject(to: compC, asNew: true))
+        let savedAsC = await restartedEditor.saveProject(to: compC, asNew: true)
+        XCTAssertTrue(savedAsC)
         await restartedMemories.waitForInFlightPublications()
         let idC = try XCTUnwrap(restartedEditor.currentProjectReference?.projectID)
         XCTAssertNotEqual(idC, idA)
@@ -121,11 +128,16 @@ final class PhotoMemorySessionTests: XCTestCase {
         editor.onSubstantiveProjectSaved = { event in _ = memories.handleProjectSaved(event) }
 
         // 1. Import only, save without edit, auto-draft, standalone export -> timeline stays empty.
-        XCTAssertTrue(await editor.importPhoto(from: source))
-        XCTAssertTrue(await editor.saveProject(to: projectsDir.appendingPathComponent("raw.comp", isDirectory: true)))
-        XCTAssertTrue(await editor.saveDraftNow())
-        XCTAssertTrue(await editor.exportImage(format: .png, to: root.appendingPathComponent("out.png")))
-        XCTAssertTrue(await editor.exportImage(format: .jpeg, to: root.appendingPathComponent("out.jpg")))
+        let importedSource = await editor.importPhoto(from: source)
+        XCTAssertTrue(importedSource)
+        let savedRaw = await editor.saveProject(to: projectsDir.appendingPathComponent("raw.comp", isDirectory: true))
+        XCTAssertTrue(savedRaw)
+        let savedDraft = await editor.saveDraftNow()
+        XCTAssertTrue(savedDraft)
+        let exportedPNG = await editor.exportImage(format: .png, to: root.appendingPathComponent("out.png"))
+        XCTAssertTrue(exportedPNG)
+        let exportedJPEG = await editor.exportImage(format: .jpeg, to: root.appendingPathComponent("out.jpg"))
+        XCTAssertTrue(exportedJPEG)
         await memories.waitForInFlightPublications()
         XCTAssertTrue(memories.items.isEmpty)
 
@@ -133,20 +145,23 @@ final class PhotoMemorySessionTests: XCTestCase {
         editor.beginCrop(aspectChoice: "1:1")
         await editor.commitCrop()
         let savedURL = projectsDir.appendingPathComponent("cropped.comp", isDirectory: true)
-        XCTAssertTrue(await editor.saveProject(to: savedURL))
+        let savedCropped = await editor.saveProject(to: savedURL)
+        XCTAssertTrue(savedCropped)
         await memories.waitForInFlightPublications()
         XCTAssertEqual(memories.items.count, 1)
         let baselineEntry = memories.items[0].entry
 
         // 3. Repeat save, unsaved edit, undo-back save -> entry & timestamp unchanged.
         clock.advance(by: 30)
-        XCTAssertTrue(await editor.saveProject())
+        let repeatSaved = await editor.saveProject()
+        XCTAssertTrue(repeatSaved)
         editor.rotateClockwise()
         await memories.waitForInFlightPublications()
         XCTAssertEqual(memories.items.count, 1)
         XCTAssertEqual(memories.items[0].entry, baselineEntry)
         editor.undo()
-        XCTAssertTrue(await editor.saveProject())
+        let undoSaved = await editor.saveProject()
+        XCTAssertTrue(undoSaved)
         await memories.waitForInFlightPublications()
         XCTAssertEqual(memories.items.count, 1)
         XCTAssertEqual(memories.items[0].entry, baselineEntry)
@@ -157,14 +172,16 @@ final class PhotoMemorySessionTests: XCTestCase {
         await editor.commitCrop() // 120x60
         try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: memoriesDir.path)
         defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: memoriesDir.path) }
-        XCTAssertTrue(await editor.saveProject())
+        let savedWhileReadOnly = await editor.saveProject()
+        XCTAssertTrue(savedWhileReadOnly)
         await memories.waitForInFlightPublications()
         XCTAssertTrue(memories.hasPendingRetries)
         XCTAssertEqual(memories.items.count, 1)
         XCTAssertEqual(memories.items[0].entry, baselineEntry)
 
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: memoriesDir.path)
-        XCTAssertTrue(await memories.retryPendingPublications())
+        let retrySucceeded = await memories.retryPendingPublications()
+        XCTAssertTrue(retrySucceeded)
         XCTAssertFalse(memories.hasPendingRetries)
         XCTAssertEqual(memories.items.count, 1)
         XCTAssertEqual(memories.items[0].entry.pixelWidth, 120)
