@@ -222,10 +222,19 @@ actor ProjectStore {
         var coordinationError: NSError?
         var writeError: Error?
         NSFileCoordinator().coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { destination in
+            let fm = FileManager.default
+            let parent = destination.deletingLastPathComponent()
+            let staging = parent.appendingPathComponent(".\(destination.lastPathComponent).\(UUID().uuidString).staging", isDirectory: true)
+            defer { try? fm.removeItem(at: staging) }
             do {
-                // Foundation stages a sibling package and atomically replaces the
-                // destination only once the complete package has been written.
-                try package.write(to: destination, options: .atomic, originalContentsURL: nil)
+                // Stage the full package beside the destination first so a read-only parent or mid-write failure
+                // never touches or truncates an existing project package.
+                try package.write(to: staging, options: [], originalContentsURL: nil)
+                if fm.fileExists(atPath: destination.path) {
+                    _ = try fm.replaceItemAt(destination, withItemAt: staging, backupItemName: nil, options: [])
+                } else {
+                    try fm.moveItem(at: staging, to: destination)
+                }
             } catch { writeError = error }
         }
         if let error = coordinationError ?? writeError as NSError? { throw error }
