@@ -11,11 +11,11 @@ import VideoEngine
 @MainActor
 @Observable
 final class PhotoMovieSession {
-    enum Operation: Equatable, Sendable {
+    nonisolated enum Operation: Equatable, Sendable {
         case importing, previewing, exporting
     }
 
-    struct PhotoItem: Identifiable, Equatable, Sendable {
+    nonisolated struct PhotoItem: Identifiable, Equatable, Sendable {
         let id: MediaID
         let name: String
         let sourceURL: URL
@@ -28,12 +28,12 @@ final class PhotoMovieSession {
         let explanation: String
     }
 
-    struct MusicSelection: Equatable, Sendable {
+    nonisolated struct MusicSelection: Equatable, Sendable {
         let name: String
         let url: URL
     }
 
-    enum MusicMode: Equatable, Sendable {
+    nonisolated enum MusicMode: Equatable, Sendable {
         case templateDefault
         case custom(MusicSelection)
         case muted

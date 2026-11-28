@@ -9,6 +9,7 @@ final class LicenseNoticeTests: XCTestCase {
             "actions-checkout",
             "actions-upload-artifact",
             "novacut",
+            "compositor",
             "iosps-original-bgm",
         ])
         XCTAssertTrue(notices.allSatisfy { $0.source.scheme == "https" && $0.source.host == "github.com" })
@@ -18,8 +19,10 @@ final class LicenseNoticeTests: XCTestCase {
             XCTAssertTrue(notice.text.contains("Copyright (c) 2018 GitHub, Inc. and contributors"))
         }
         XCTAssertTrue(notices[3].source.path.contains("722178133bc8d82592ddc093382511e3e8e591b2"))
-        XCTAssertTrue(notices[4].source.path.contains("iosps-studio"))
-        XCTAssertTrue(notices[4].text.contains("CC0 1.0 Universal"))
-        XCTAssertTrue(notices[4].text.contains("warm-piano.m4a"))
+        XCTAssertTrue(notices[4].source.path.contains("4a17b264a93b6da5fa5ff81357e6194ef9ad61a2"))
+        XCTAssertTrue(notices[4].text.contains("Copyright (c) 2026 Wonder Assembly LLC"))
+        XCTAssertTrue(notices[5].source.path.contains("iosps-studio"))
+        XCTAssertTrue(notices[5].text.contains("CC0 1.0 Universal"))
+        XCTAssertTrue(notices[5].text.contains("warm-piano.m4a"))
     }
 }

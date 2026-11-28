@@ -24,6 +24,12 @@
     "source": "https://github.com/JesusMonjeGonzalez/NovaCut/blob/722178133bc8d82592ddc093382511e3e8e591b2/LICENSE"
   },
   {
+    "id": "compositor",
+    "title": "Compositor · 4a17b26",
+    "license": "MIT",
+    "source": "https://github.com/robbietilton/Compositor/blob/4a17b264a93b6da5fa5ff81357e6194ef9ad61a2/LICENSE"
+  },
+  {
     "id": "iosps-original-bgm",
     "title": "IOSPS 内置短片配乐与模板",
     "license": "CC0-1.0 / MIT",

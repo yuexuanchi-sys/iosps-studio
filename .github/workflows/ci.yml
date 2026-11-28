@@ -28,8 +28,8 @@ defaults:
 
 jobs:
   macos:
-    runs-on: macos-26
-    timeout-minutes: 20
+    runs-on: xcode-27
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -119,6 +119,14 @@ jobs:
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
             --output-path "$output" --test-id 'VideoEditorUITests/testFinderImportTrimReorderSaveReopenAndExport()'
           grep -F 'video-editor-exported' "$output/manifest.json"
+          output="$RUNNER_TEMP/iosps-artifacts/photo-editor"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output" \
+            --test-id 'PhotoEditorUITests/testToolbarEntryEditCrossModulePersistSaveRestartAndAppearanceScreenshots()'
+          grep -F 'photo-editor-light' "$output/manifest.json"
+          grep -F 'photo-editor-dark-draft' "$output/manifest.json"
+          grep -F 'photo-editor-reopened' "$output/manifest.json"
           output="$RUNNER_TEMP/iosps-artifacts/photo-movie"
           for scenario in testWritesOrderedPhotosAndHonorsOrientation testWritesAllFiveCameraMotions testDissolvesTwoScenesWithExactFrameBoundaries testRendersChineseCaptionsAndPreservesUncaptionedFrames testMuxesMusicWithFadeInOutAndBeatPacing testLoopsShortExcerptAndRejectsOutOfRangeOrCorruptAudio testFailedOrCancelledWritesKeepEarlierMovieAndCanRetry; do
             mkdir -p "$output/$scenario"
@@ -173,9 +181,13 @@ jobs:
           executable="$signed_app/Contents/MacOS/IOSPS"
           codesign --verify --deep --strict --verbose=2 "$signed_app"
           test "$(lipo -archs "$executable")" = arm64
-          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$signed_app/Contents/Info.plist")" = 14.0
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$signed_app/Contents/Info.plist")" = 26.0
           xcrun vtool -show-build "$executable" | tee "$output/build-target.txt"
-          grep -Eq '^[[:space:]]+minos 14\.0$' "$output/build-target.txt"
+          grep -Eq '^[[:space:]]+minos 26\.0$' "$output/build-target.txt"
+          test ! -d "$signed_app/Contents/Frameworks/Sparkle.framework"
+          test ! -e "$signed_app/Contents/Resources/CameraRawTables.bin"
+          test ! -e "$signed_app/Contents/Resources/CameraRawShadows.bin"
+          test ! -e "$signed_app/Contents/Resources/DepthMini.mlmodelc"
           codesign -d --entitlements - "$signed_app" > "$output/signed-entitlements.plist"
           python3 - "$output/signed-entitlements.plist" <<'PY' | tee "$output/signed-entitlements.txt"
           import plistlib
@@ -211,6 +223,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/birthday-control/
             ${{ runner.temp }}/iosps-artifacts/birthday-celebration/
             ${{ runner.temp }}/iosps-artifacts/video-editor/
+            ${{ runner.temp }}/iosps-artifacts/photo-editor/
             ${{ runner.temp }}/iosps-artifacts/photo-movie/
             ${{ runner.temp }}/iosps-artifacts/photo-movie-ui/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt

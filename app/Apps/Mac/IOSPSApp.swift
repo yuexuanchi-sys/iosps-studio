@@ -1,3 +1,4 @@
+import AppKit
 import DesignSystem
 import Foundation
 import GiftKit
@@ -8,7 +9,9 @@ import SwiftUI
 @MainActor
 struct IOSPSApp: App {
     private static let applicationDirectory = URL.applicationSupportDirectory.appending(path: "org.iosps.birthday")
+    @NSApplicationDelegateAdaptor(IOSPSAppDelegate.self) private var appDelegate
     @State private var session: MediaImportSession
+    @State private var photoEditor: PhotoEditingSession
     @State private var photoMovie: PhotoMovieSession
     @State private var editor: VideoEditingSession
     @State private var birthday = Self.makeBirthdaySession()
@@ -18,16 +21,18 @@ struct IOSPSApp: App {
         let local = Self.localDataDirectory()
         let library = MediaLibrary(directory: local.appending(path: "Media", directoryHint: .isDirectory))
         let drafts = FileDraftStore(directory: local.appending(path: "Drafts", directoryHint: .isDirectory))
+        let photoDrafts = PhotoDraftRecoveryStore(directory: local.appending(path: "PhotoDrafts", directoryHint: .isDirectory))
         _session = State(wrappedValue: MediaImportSession(library: library))
+        _photoEditor = State(wrappedValue: PhotoEditingSession(draftStore: photoDrafts))
         _photoMovie = State(wrappedValue: PhotoMovieSession(library: library))
         _editor = State(wrappedValue: VideoEditingSession(library: library, drafts: drafts))
     }
 
     var body: some Scene {
         WindowGroup {
-            MainWindow(session: session, photoMovie: photoMovie, editor: editor, birthday: birthday, celebration: celebration)
+            mainContent
         }
-        .defaultSize(width: 820, height: 560)
+        .defaultSize(width: 960, height: 640)
         .commands {
             BirthdayCommands(reload: birthday.reload)
             AboutCommands()
@@ -36,6 +41,28 @@ struct IOSPSApp: App {
             AboutLicensesView()
         }
         .defaultSize(width: 620, height: 460)
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        let window = MainWindow(
+            session: session,
+            photoEditor: photoEditor,
+            photoMovie: photoMovie,
+            editor: editor,
+            birthday: birthday,
+            celebration: celebration,
+            appDelegate: appDelegate
+        )
+        #if DEBUG
+        if let appearance = ProcessInfo.processInfo.environment["IOSPS_TEST_APPEARANCE"] {
+            window.preferredColorScheme(appearance == "dark" ? .dark : .light)
+        } else {
+            window
+        }
+        #else
+        window
+        #endif
     }
 
     private static func localDataDirectory() -> URL {
@@ -62,6 +89,23 @@ struct IOSPSApp: App {
     }
 }
 
+@MainActor
+final class IOSPSAppDelegate: NSObject, NSApplicationDelegate {
+    var hasPendingDraftFlush: (@MainActor () -> Bool)?
+    var flushBeforeTermination: (@MainActor () async -> Void)?
+
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        guard hasPendingDraftFlush?() == true, let flush = flushBeforeTermination else {
+            return .terminateNow
+        }
+        Task { @MainActor in
+            await flush()
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        return .terminateLater
+    }
+}
+
 private struct AboutCommands: Commands {
     @Environment(\.openWindow) private var openWindow
 
@@ -73,14 +117,16 @@ private struct AboutCommands: Commands {
 }
 
 private struct MainWindow: View {
-    private enum Page { case birthday, media, movie, video }
+    private enum Page { case birthday, media, photo, movie, video }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let session: MediaImportSession
+    let photoEditor: PhotoEditingSession
     let photoMovie: PhotoMovieSession
     let editor: VideoEditingSession
     let birthday: BirthdayHomeSession
     let celebration: BirthdayCelebrationPanel
+    let appDelegate: IOSPSAppDelegate
     @State private var pageSelection = Page.birthday
     @State private var showsEasterEggNotice = false
     @State private var eggTrigger = EasterEggTrigger()
@@ -90,9 +136,14 @@ private struct MainWindow: View {
 
     var body: some View {
         page
+            .onAppear {
+                appDelegate.hasPendingDraftFlush = { photoEditor.needsDraftFlush }
+                appDelegate.flushBeforeTermination = { await photoEditor.flushDraftBeforeQuit() }
+            }
             .task {
                 guard !checkedFirstLaunch else { return }
                 checkedFirstLaunch = true
+                _ = await photoEditor.restoreLatestValidDraftIfNeeded()
                 if let day = birthday.day(), birthday.shouldPresentAutomatically(on: day), presentCelebration() {
                     birthday.recordAutomaticPresentation(on: day)
                 }
@@ -110,13 +161,16 @@ private struct MainWindow: View {
 
     @ViewBuilder
     private var page: some View {
-        if pageSelection == .media {
+        switch pageSelection {
+        case .media:
             MediaImportView(session: session)
-        } else if pageSelection == .movie {
+        case .photo:
+            PhotoEditorView(session: photoEditor)
+        case .movie:
             PhotoMovieView(session: photoMovie)
-        } else if pageSelection == .video {
+        case .video:
             VideoEditorView(session: editor)
-        } else {
+        case .birthday:
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 greeting(at: context.date)
             }
@@ -177,6 +231,19 @@ private struct MainWindow: View {
             }
             .accessibilityIdentifier("shared-media-entry")
             .help(pageSelection == .media ? Text("返回生日主页") : Text("导入素材"))
+        }
+        ToolbarItem(placement: .automatic) {
+            Button {
+                navigate(to: .photo)
+            } label: {
+                if pageSelection == .photo {
+                    Label("返回生日主页", systemImage: "house")
+                } else {
+                    Label("修图", systemImage: "slider.horizontal.3")
+                }
+            }
+            .accessibilityIdentifier("photo-editor-entry")
+            .help(pageSelection == .photo ? Text("返回生日主页") : Text("修图"))
         }
         ToolbarItem(placement: .automatic) {
             Button {

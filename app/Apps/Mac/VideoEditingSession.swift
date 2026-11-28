@@ -240,7 +240,7 @@ final class VideoEditingSession {
     }
 }
 
-private struct AppendVideos: EditCommand {
+private nonisolated struct AppendVideos: EditCommand {
     let previous: Timeline
     let result: Timeline
 

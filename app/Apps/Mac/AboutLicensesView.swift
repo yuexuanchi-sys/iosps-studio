@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct LicenseNotice: Identifiable {
+nonisolated struct LicenseNotice: Identifiable, Sendable {
     let id: String
     let title: String
     let license: String
