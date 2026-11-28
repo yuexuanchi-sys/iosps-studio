@@ -198,12 +198,17 @@ private struct MainWindow: View {
             PhotoMemoryTimelineView(
                 session: photoMemories,
                 largeText: largeText,
-                onGoToEditor: { pageSelection = .photo },
+                onGoToEditor: {
+                    photoMemories.closeDetail()
+                    pageSelection = .photo
+                },
                 onContinueEditing: { reference in
+                    photoMemories.closeDetail()
                     pageSelection = .photo
                     Task { _ = await photoEditor.openProject(reference: reference) }
                 },
                 onMakeMovie: { media, title in
+                    photoMemories.closeDetail()
                     _ = photoMovie.addPreparedPhoto(media, name: title)
                     pageSelection = .movie
                 }
@@ -332,6 +337,9 @@ private struct MainWindow: View {
 
     private func navigate(to target: Page) {
         eggTrigger = EasterEggTrigger()
+        if target == .memories, pageSelection != .memories {
+            photoMemories.closeDetail()
+        }
         pageSelection = pageSelection == target ? .birthday : target
     }
 
