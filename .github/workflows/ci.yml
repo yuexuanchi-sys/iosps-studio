@@ -127,6 +127,13 @@ jobs:
           grep -F 'photo-editor-light' "$output/manifest.json"
           grep -F 'photo-editor-dark-draft' "$output/manifest.json"
           grep -F 'photo-editor-reopened' "$output/manifest.json"
+          output="$RUNNER_TEMP/iosps-artifacts/photo-crop"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output" \
+            --test-id 'PhotoCropOrientationUITests/testCropAspectPresetsCustomRatioCancelCommitAndFourWayOrientationWithScreenshots()'
+          grep -F 'crop-overlay-light' "$output/manifest.json"
+          grep -F 'crop-oriented-dark' "$output/manifest.json"
           output="$RUNNER_TEMP/iosps-artifacts/photo-memories"
           mkdir -p "$output"
           xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
@@ -234,6 +241,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/birthday-celebration/
             ${{ runner.temp }}/iosps-artifacts/video-editor/
             ${{ runner.temp }}/iosps-artifacts/photo-editor/
+            ${{ runner.temp }}/iosps-artifacts/photo-crop/
             ${{ runner.temp }}/iosps-artifacts/photo-memories/
             ${{ runner.temp }}/iosps-artifacts/photo-movie/
             ${{ runner.temp }}/iosps-artifacts/photo-movie-ui/

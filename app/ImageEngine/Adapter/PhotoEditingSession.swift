@@ -47,10 +47,15 @@ final class PhotoEditingSession {
     var undoCount: Int { editor.history.undoCount }
     var redoCount: Int { editor.history.redoCount }
     var isCropping: Bool { editor.cropRect != nil }
+    var activeCropChoice: String { editor.cropRatioChoice }
+    var activeCropAspect: PhotoCropAspect? { PhotoCropAspect(rawValue: editor.cropRatioChoice) }
+    var cropPixelWidth: Int { Int((editor.cropRect?.width ?? 0).rounded()) }
+    var cropPixelHeight: Int { Int((editor.cropRect?.height ?? 0).rounded()) }
     var isAdjustingExposure: Bool { editor.filterEdit?.kind == .exposure }
     var isAdjustingSaturation: Bool { editor.hueSaturation != nil }
     var isAdjustingColor: Bool { isAdjustingExposure || isAdjustingSaturation }
     var canEdit: Bool { !isBusy && editor.document != nil && editor.canEditLayers }
+    var canCrop: Bool { !isBusy && editor.document != nil && editor.canStartProjectOperation && !isAdjustingColor }
     var canAdjustColors: Bool { !isBusy && editor.document != nil && editor.canStartProjectOperation && editor.canAdjustColors && editor.cropRect == nil }
     var canSave: Bool { !isBusy && editor.document != nil && editor.canStartProjectOperation && editor.cropRect == nil && !isAdjustingColor }
     var needsDraftFlush: Bool { editor.document != nil && (draftTask != nil || lastDraftRevision != editor.history.currentRevision) }
@@ -139,23 +144,47 @@ final class PhotoEditingSession {
 
     // MARK: - Editing Operations
 
+    func beginCrop(_ aspect: PhotoCropAspect) {
+        beginCrop(aspectChoice: aspect.compositorChoice)
+    }
+
     func beginCrop(aspectChoice: String) {
-        guard canSave, let document = editor.document else { return }
+        guard canCrop, let document = editor.document else { return }
         errorMessage = nil
         editor.selectTool(.crop)
         editor.cropRatioChoice = aspectChoice
-        if let ratio = CropGeometry.ratio(aspectChoice) {
-            let width = min(document.size.width, document.size.height * ratio)
-            let height = width / ratio
-            editor.cropRect = CropGeometry.snapped(CGRect(
-                x: (document.size.width - width) / 2,
-                y: (document.size.height - height) / 2,
-                width: width,
-                height: height
-            ))
-        } else {
-            editor.cropRect = CGRect(origin: .zero, size: document.size)
+        let ratio = PhotoCropAspect.resolvedRatio(for: aspectChoice, canvasSize: document.size)
+        editor.cropRect = PhotoCropAspect.centeredCropRect(in: document.size, ratio: ratio)
+    }
+
+    /// Validates a user-entered `W:H` crop ratio string and updates the centered crop frame when valid.
+    @discardableResult
+    func applyCustomCropRatio(_ raw: String) -> Bool {
+        guard canCrop, editor.document != nil else { return false }
+        guard let parsed = PhotoCropAspect.normalizedCustomRatio(raw) else {
+            errorMessage = String(localized: "请输入有效的宽高比（如 4:5 或 3:2）。")
+            return false
         }
+        beginCrop(aspectChoice: parsed.choice)
+        return true
+    }
+
+    /// Updates the active crop rectangle directly (clamped to integer pixels inside the canvas).
+    func setCropRect(_ rect: CGRect) {
+        guard canCrop, let document = editor.document else { return }
+        let clamped = PhotoCropAspect.clampedToCanvas(CropGeometry.snapped(rect), canvasSize: document.size)
+        guard CropGeometry.valid(clamped) else { return }
+        errorMessage = nil
+        editor.selectTool(.crop)
+        editor.cropRect = clamped
+    }
+
+    /// Resets the active crop frame to full-canvas free mode without exiting crop mode.
+    func resetCropRect() {
+        guard isCropping, let document = editor.document else { return }
+        errorMessage = nil
+        editor.cropRatioChoice = PhotoCropAspect.free.compositorChoice
+        editor.cropRect = PhotoCropAspect.centeredCropRect(in: document.size, ratio: nil)
     }
 
     func commitCrop() async {
@@ -176,6 +205,7 @@ final class PhotoEditingSession {
     }
 
     func cancelCrop() {
+        errorMessage = nil
         editor.cancelCrop()
         editor.selectTool(.hand)
     }

@@ -1,10 +1,15 @@
 import AppKit
+import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct PhotoEditorView: View {
     let session: PhotoEditingSession
     @State private var dropTargeted = false
+    @State private var customRatioInput = "4:5"
+
+    private let aspectGridColumns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 3)
+    private let orientationGridColumns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 2)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -136,34 +141,105 @@ struct PhotoEditorView: View {
             Text("裁剪与方向")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-            HStack(spacing: 8) {
-                Button("1:1") { session.beginCrop(aspectChoice: "1:1") }
-                    .disabled(!session.canSave && !session.isCropping)
-                    .accessibilityLabel("正方形裁剪")
-                    .accessibilityIdentifier("photo-editor-crop-square")
-                Button("2:1") { session.beginCrop(aspectChoice: "2:1") }
-                    .disabled(!session.canSave && !session.isCropping)
-                    .accessibilityLabel("二比一裁剪")
-                    .accessibilityIdentifier("photo-editor-crop-wide")
+            LazyVGrid(columns: aspectGridColumns, spacing: 6) {
+                ForEach(PhotoCropAspect.allCases) { aspect in
+                    let isSelected = session.isCropping && session.activeCropAspect == aspect
+                    Button {
+                        session.beginCrop(aspect)
+                    } label: {
+                        Text(verbatim: aspect.displayTitle)
+                            .font(.caption.weight(isSelected ? .semibold : .regular))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
+                            .background(
+                                isSelected ? Color.accentColor.opacity(0.2) : Color(nsColor: .controlBackgroundColor),
+                                in: RoundedRectangle(cornerRadius: 6)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(isSelected ? Color.accentColor : Color.secondary.opacity(0.25), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!session.canCrop)
+                    .accessibilityLabel(Text(verbatim: aspect.accessibilityTitle))
+                    .accessibilityIdentifier(aspect.accessibilityID)
+                }
             }
             if session.isCropping {
+                Text("裁剪区域 \(session.cropPixelWidth) × \(session.cropPixelHeight) 像素")
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("photo-editor-crop-size")
+                HStack(spacing: 6) {
+                    TextField("如 4:5", text: $customRatioInput)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { _ = session.applyCustomCropRatio(customRatioInput) }
+                        .accessibilityLabel("自定义裁剪比例")
+                        .accessibilityIdentifier("photo-editor-crop-custom-input")
+                    Button("设为比例") {
+                        _ = session.applyCustomCropRatio(customRatioInput)
+                    }
+                    .disabled(!session.canCrop)
+                    .accessibilityIdentifier("photo-editor-crop-custom-apply")
+                }
                 Text("拖动裁剪框调整范围，确认后生效。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Button("重置", action: session.resetCropRect)
+                        .accessibilityIdentifier("photo-editor-crop-reset")
                     Button("取消裁剪", action: session.cancelCrop)
+                        .keyboardShortcut(.cancelAction)
                         .accessibilityIdentifier("photo-editor-cancel-crop")
-                    Button("应用裁剪") { Task { await session.commitCrop() } }
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityIdentifier("photo-editor-apply-crop")
                 }
+                Button("应用裁剪") { Task { await session.commitCrop() } }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("photo-editor-apply-crop")
             } else {
-                Button("向右旋转 90°", systemImage: "rotate.right", action: session.rotateClockwise)
+                LazyVGrid(columns: orientationGridColumns, spacing: 6) {
+                    Button {
+                        session.rotateCounterclockwise()
+                    } label: {
+                        Label("左旋 90°", systemImage: "rotate.left")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .keyboardShortcut("[", modifiers: .command)
                     .disabled(!session.canEdit)
+                    .accessibilityLabel("向左旋转 90°")
+                    .accessibilityIdentifier("photo-editor-rotate-left")
+
+                    Button {
+                        session.rotateClockwise()
+                    } label: {
+                        Label("右旋 90°", systemImage: "rotate.right")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .keyboardShortcut("]", modifiers: .command)
+                    .disabled(!session.canEdit)
+                    .accessibilityLabel("向右旋转 90°")
                     .accessibilityIdentifier("photo-editor-rotate")
-                Button("水平翻转", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right", action: session.flipHorizontal)
+
+                    Button {
+                        session.flipHorizontal()
+                    } label: {
+                        Label("水平翻转", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right")
+                            .frame(maxWidth: .infinity)
+                    }
                     .disabled(!session.canEdit)
                     .accessibilityIdentifier("photo-editor-flip-h")
+
+                    Button {
+                        session.flipVertical()
+                    } label: {
+                        Label("垂直翻转", systemImage: "arrow.up.and.down.righttriangle.up.righttriangle.down")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .disabled(!session.canEdit)
+                    .accessibilityIdentifier("photo-editor-flip-v")
+                }
                 Divider()
                 Text("基础调色")
                     .font(.subheadline.weight(.semibold))
