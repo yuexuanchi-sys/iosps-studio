@@ -29,7 +29,7 @@ defaults:
 jobs:
   macos:
     runs-on: xcode-27
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -127,6 +127,16 @@ jobs:
           grep -F 'photo-editor-light' "$output/manifest.json"
           grep -F 'photo-editor-dark-draft' "$output/manifest.json"
           grep -F 'photo-editor-reopened' "$output/manifest.json"
+          output="$RUNNER_TEMP/iosps-artifacts/photo-memories"
+          mkdir -p "$output"
+          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/iosps-tests.xcresult" \
+            --output-path "$output" \
+            --test-id 'PhotoMemoryUITests/testEmptyStateSaveTwoMemoriesReorderContinueEditMovieHandoffRestartAndAppearances()'
+          grep -F 'memories-empty' "$output/manifest.json"
+          grep -F 'memories-light' "$output/manifest.json"
+          grep -F 'memories-dark' "$output/manifest.json"
+          grep -F 'memories-large' "$output/manifest.json"
+          grep -F 'memories-detail' "$output/manifest.json"
           output="$RUNNER_TEMP/iosps-artifacts/photo-movie"
           for scenario in testWritesOrderedPhotosAndHonorsOrientation testWritesAllFiveCameraMotions testDissolvesTwoScenesWithExactFrameBoundaries testRendersChineseCaptionsAndPreservesUncaptionedFrames testMuxesMusicWithFadeInOutAndBeatPacing testLoopsShortExcerptAndRejectsOutOfRangeOrCorruptAudio testFailedOrCancelledWritesKeepEarlierMovieAndCanRetry; do
             mkdir -p "$output/$scenario"
@@ -224,6 +234,7 @@ jobs:
             ${{ runner.temp }}/iosps-artifacts/birthday-celebration/
             ${{ runner.temp }}/iosps-artifacts/video-editor/
             ${{ runner.temp }}/iosps-artifacts/photo-editor/
+            ${{ runner.temp }}/iosps-artifacts/photo-memories/
             ${{ runner.temp }}/iosps-artifacts/photo-movie/
             ${{ runner.temp }}/iosps-artifacts/photo-movie-ui/
             ${{ runner.temp }}/iosps-artifacts/snapshot-size.txt

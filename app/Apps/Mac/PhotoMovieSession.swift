@@ -187,6 +187,26 @@ final class PhotoMovieSession {
         message = nil
     }
 
+    /// Appends a library-owned saved photo (such as a saved photo memory) directly into the movie queue.
+    @discardableResult
+    func addPreparedPhoto(_ media: ImportedMedia, name: String) -> Bool {
+        guard operation == nil, media.kind == .photo else { return false }
+        if let template = selectedTemplate,
+           Self.durationFrames(photoCount: photos.count + 1, template: template) > VideoTiming.maxOutputFrames {
+            message = String(localized: "回忆短片最长 10 分钟。")
+            return false
+        }
+        photos.append(PhotoItem(
+            id: media.id,
+            name: name,
+            sourceURL: media.sourceURL,
+            thumbnailURL: media.thumbnailURL
+        ))
+        invalidatePreview()
+        message = nil
+        return true
+    }
+
     func selectTemplate(id: String) {
         guard operation == nil, id != selectedTemplateID, catalog.contains(where: { $0.template.id == id }) else { return }
         selectedTemplateID = id

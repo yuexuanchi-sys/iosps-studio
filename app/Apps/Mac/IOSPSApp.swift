@@ -12,6 +12,7 @@ struct IOSPSApp: App {
     @NSApplicationDelegateAdaptor(IOSPSAppDelegate.self) private var appDelegate
     @State private var session: MediaImportSession
     @State private var photoEditor: PhotoEditingSession
+    @State private var photoMemories: PhotoMemorySession
     @State private var photoMovie: PhotoMovieSession
     @State private var editor: VideoEditingSession
     @State private var birthday = Self.makeBirthdaySession()
@@ -22,8 +23,18 @@ struct IOSPSApp: App {
         let library = MediaLibrary(directory: local.appending(path: "Media", directoryHint: .isDirectory))
         let drafts = FileDraftStore(directory: local.appending(path: "Drafts", directoryHint: .isDirectory))
         let photoDrafts = PhotoDraftRecoveryStore(directory: local.appending(path: "PhotoDrafts", directoryHint: .isDirectory))
+        let memoryStore = PhotoMemoryStore(
+            directory: local.appending(path: "PhotoMemories", directoryHint: .isDirectory),
+            library: library
+        )
+        let photoEditor = PhotoEditingSession(draftStore: photoDrafts)
+        let photoMemories = PhotoMemorySession(store: memoryStore)
+        photoEditor.onSubstantiveProjectSaved = { [weak photoMemories] event in
+            _ = photoMemories?.handleProjectSaved(event)
+        }
         _session = State(wrappedValue: MediaImportSession(library: library))
-        _photoEditor = State(wrappedValue: PhotoEditingSession(draftStore: photoDrafts))
+        _photoEditor = State(wrappedValue: photoEditor)
+        _photoMemories = State(wrappedValue: photoMemories)
         _photoMovie = State(wrappedValue: PhotoMovieSession(library: library))
         _editor = State(wrappedValue: VideoEditingSession(library: library, drafts: drafts))
     }
@@ -48,11 +59,13 @@ struct IOSPSApp: App {
         let window = MainWindow(
             session: session,
             photoEditor: photoEditor,
+            photoMemories: photoMemories,
             photoMovie: photoMovie,
             editor: editor,
             birthday: birthday,
             celebration: celebration,
-            appDelegate: appDelegate
+            appDelegate: appDelegate,
+            largeText: Self.prefersLargeText()
         )
         #if DEBUG
         if let appearance = ProcessInfo.processInfo.environment["IOSPS_TEST_APPEARANCE"] {
@@ -63,6 +76,15 @@ struct IOSPSApp: App {
         #else
         window
         #endif
+    }
+
+    private static func prefersLargeText() -> Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["IOSPS_TEST_LARGE_TEXT"] == "1" {
+            return true
+        }
+        #endif
+        return false
     }
 
     private static func localDataDirectory() -> URL {
@@ -117,16 +139,18 @@ private struct AboutCommands: Commands {
 }
 
 private struct MainWindow: View {
-    private enum Page { case birthday, media, photo, movie, video }
+    private enum Page { case birthday, media, memories, photo, movie, video }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let session: MediaImportSession
     let photoEditor: PhotoEditingSession
+    let photoMemories: PhotoMemorySession
     let photoMovie: PhotoMovieSession
     let editor: VideoEditingSession
     let birthday: BirthdayHomeSession
     let celebration: BirthdayCelebrationPanel
     let appDelegate: IOSPSAppDelegate
+    let largeText: Bool
     @State private var pageSelection = Page.birthday
     @State private var showsEasterEggNotice = false
     @State private var eggTrigger = EasterEggTrigger()
@@ -137,13 +161,19 @@ private struct MainWindow: View {
     var body: some View {
         page
             .onAppear {
-                appDelegate.hasPendingDraftFlush = { photoEditor.needsDraftFlush }
-                appDelegate.flushBeforeTermination = { await photoEditor.flushDraftBeforeQuit() }
+                appDelegate.hasPendingDraftFlush = {
+                    photoEditor.needsDraftFlush || photoMemories.hasInFlightPublication
+                }
+                appDelegate.flushBeforeTermination = {
+                    await photoEditor.flushDraftBeforeQuit()
+                    await photoMemories.waitForInFlightPublications()
+                }
             }
             .task {
                 guard !checkedFirstLaunch else { return }
                 checkedFirstLaunch = true
                 _ = await photoEditor.restoreLatestValidDraftIfNeeded()
+                await photoMemories.reload()
                 if let day = birthday.day(), birthday.shouldPresentAutomatically(on: day), presentCelebration() {
                     birthday.recordAutomaticPresentation(on: day)
                 }
@@ -164,6 +194,20 @@ private struct MainWindow: View {
         switch pageSelection {
         case .media:
             MediaImportView(session: session)
+        case .memories:
+            PhotoMemoryTimelineView(
+                session: photoMemories,
+                largeText: largeText,
+                onGoToEditor: { pageSelection = .photo },
+                onContinueEditing: { reference in
+                    pageSelection = .photo
+                    Task { _ = await photoEditor.openProject(reference: reference) }
+                },
+                onMakeMovie: { media, title in
+                    _ = photoMovie.addPreparedPhoto(media, name: title)
+                    pageSelection = .movie
+                }
+            )
         case .photo:
             PhotoEditorView(session: photoEditor)
         case .movie:
@@ -231,6 +275,19 @@ private struct MainWindow: View {
             }
             .accessibilityIdentifier("shared-media-entry")
             .help(pageSelection == .media ? Text("返回生日主页") : Text("导入素材"))
+        }
+        ToolbarItem(placement: .automatic) {
+            Button {
+                navigate(to: .memories)
+            } label: {
+                if pageSelection == .memories {
+                    Label("返回生日主页", systemImage: "house")
+                } else {
+                    Label("回忆", systemImage: "photo.on.rectangle.angled")
+                }
+            }
+            .accessibilityIdentifier("memories-entry")
+            .help(pageSelection == .memories ? Text("返回生日主页") : Text("回忆"))
         }
         ToolbarItem(placement: .automatic) {
             Button {
