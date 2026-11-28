@@ -7,6 +7,30 @@ import UniformTypeIdentifiers
 import XCTest
 @testable import IOSPS
 
+@MainActor
+private final class EventRecorder {
+    private(set) var events: [PhotoProjectSavedEvent] = []
+
+    func record(_ event: PhotoProjectSavedEvent) {
+        events.append(event)
+    }
+}
+
+@MainActor
+private final class StepClock {
+    private var tick = 0
+    private let start: Date
+
+    init(start: Date) {
+        self.start = start
+    }
+
+    func next() -> Date {
+        tick += 1
+        return start.addingTimeInterval(TimeInterval(tick * 10))
+    }
+}
+
 final class PhotoEditingSessionTests: XCTestCase {
     @MainActor
     func testHistorySupportsTwentyFiveUndoRedoAndClearsRedoOnNewEdit() async throws {
@@ -18,8 +42,8 @@ final class PhotoEditingSessionTests: XCTestCase {
 
         let draftStore = PhotoDraftRecoveryStore(directory: root.appendingPathComponent("Drafts", isDirectory: true))
         let session = PhotoEditingSession(draftStore: draftStore)
-        var emitted: [PhotoProjectSavedEvent] = []
-        session.onSubstantiveProjectSaved = { emitted.append($0) }
+        let recorder = EventRecorder()
+        session.onSubstantiveProjectSaved = { recorder.record($0) }
 
         let imported = await session.importPhoto(from: source)
         XCTAssertTrue(imported)
@@ -27,7 +51,7 @@ final class PhotoEditingSessionTests: XCTestCase {
         XCTAssertEqual(session.pixelHeight, 120)
         XCTAssertEqual(session.undoCount, 0)
         XCTAssertEqual(session.redoCount, 0)
-        XCTAssertTrue(emitted.isEmpty)
+        XCTAssertTrue(recorder.events.isEmpty)
 
         // Commit 25 undoable edits (23 geometry steps + 2 exposure pixel commits).
         for step in 0..<23 {
@@ -70,7 +94,7 @@ final class PhotoEditingSessionTests: XCTestCase {
         XCTAssertEqual(session.redoCount, 0)
         XCTAssertFalse(session.canRedo)
 
-        XCTAssertTrue(emitted.isEmpty)
+        XCTAssertTrue(recorder.events.isEmpty)
         XCTAssertEqual(SHA256.hash(data: try Data(contentsOf: source)), originalDigest)
     }
 
@@ -85,8 +109,8 @@ final class PhotoEditingSessionTests: XCTestCase {
         let draftDir = root.appendingPathComponent("Drafts", isDirectory: true)
         let draftStore = PhotoDraftRecoveryStore(directory: draftDir)
         let session = PhotoEditingSession(draftStore: draftStore)
-        var emitted: [PhotoProjectSavedEvent] = []
-        session.onSubstantiveProjectSaved = { emitted.append($0) }
+        let recorder = EventRecorder()
+        session.onSubstantiveProjectSaved = { recorder.record($0) }
 
         let imported = await session.importPhoto(from: source)
         XCTAssertTrue(imported)
@@ -109,18 +133,18 @@ final class PhotoEditingSessionTests: XCTestCase {
         XCTAssertEqual(session.pixelHeight, 60)
         let draft2Saved = await session.saveDraftNow()
         XCTAssertTrue(draft2Saved)
-        XCTAssertTrue(emitted.isEmpty)
+        XCTAssertTrue(recorder.events.isEmpty)
 
         // Fresh session restores Draft 2 (latest valid draft) without notifying memories.
         let restored = PhotoEditingSession(draftStore: draftStore)
-        var restoredEvents: [PhotoProjectSavedEvent] = []
-        restored.onSubstantiveProjectSaved = { restoredEvents.append($0) }
+        let restoredRecorder = EventRecorder()
+        restored.onSubstantiveProjectSaved = { restoredRecorder.record($0) }
         let didRestoreLatest = await restored.restoreLatestValidDraft()
         XCTAssertTrue(didRestoreLatest)
         XCTAssertTrue(restored.restoredFromDraft)
         XCTAssertEqual(restored.pixelWidth, 120)
         XCTAssertEqual(restored.pixelHeight, 60)
-        XCTAssertTrue(restoredEvents.isEmpty)
+        XCTAssertTrue(restoredRecorder.events.isEmpty)
 
         // Corrupt latest draft manifest -> fresh session falls back to valid backup (Draft 1: 120x120).
         let latestManifest = draftDir.appendingPathComponent("latest/draft.comp/manifest.json")
@@ -160,33 +184,29 @@ final class PhotoEditingSessionTests: XCTestCase {
         try writeImage(to: source, width: 160, height: 120, type: .png)
         let originalDigest = SHA256.hash(data: try Data(contentsOf: source))
 
-        var tick = 0
-        let fixedStart = Date(timeIntervalSince1970: 1_795_000_000)
+        let clock = StepClock(start: Date(timeIntervalSince1970: 1_795_000_000))
         let session = PhotoEditingSession(
             draftStore: PhotoDraftRecoveryStore(directory: root.appendingPathComponent("Drafts", isDirectory: true)),
-            clock: {
-                tick += 1
-                return fixedStart.addingTimeInterval(TimeInterval(tick * 10))
-            }
+            clock: { clock.next() }
         )
-        var events: [PhotoProjectSavedEvent] = []
-        session.onSubstantiveProjectSaved = { events.append($0) }
+        let recorder = EventRecorder()
+        session.onSubstantiveProjectSaved = { recorder.record($0) }
 
         // 1. Import only -> no notification.
         let imported = await session.importPhoto(from: source)
         XCTAssertTrue(imported)
-        XCTAssertEqual(events.count, 0)
+        XCTAssertEqual(recorder.events.count, 0)
 
         // 2. Save without any substantive edit -> writes file, NO notification.
         let uneditedProject = outputs.appendingPathComponent("unedited.comp", isDirectory: true)
         let savedUnedited = await session.saveProject(to: uneditedProject)
         XCTAssertTrue(savedUnedited)
-        XCTAssertEqual(events.count, 0)
+        XCTAssertEqual(recorder.events.count, 0)
 
         // 3. Auto-draft save -> NO notification.
         let drafted = await session.saveDraftNow()
         XCTAssertTrue(drafted)
-        XCTAssertEqual(events.count, 0)
+        XCTAssertEqual(recorder.events.count, 0)
 
         // 4. Standalone PNG & JPEG exports -> verify dimensions, sRGB, alpha, and NO notification.
         let exportedPNG = outputs.appendingPathComponent("standalone.png")
@@ -195,7 +215,7 @@ final class PhotoEditingSessionTests: XCTestCase {
         let jpgOK = await session.exportImage(format: .jpeg, to: exportedJPG)
         XCTAssertTrue(pngOK)
         XCTAssertTrue(jpgOK)
-        XCTAssertEqual(events.count, 0)
+        XCTAssertEqual(recorder.events.count, 0)
         let pngImg = try decodeImage(at: exportedPNG)
         let jpgImg = try decodeImage(at: exportedJPG)
         XCTAssertEqual(pngImg.width, 160)
@@ -221,24 +241,24 @@ final class PhotoEditingSessionTests: XCTestCase {
         let projectA = outputs.appendingPathComponent("project-a.comp", isDirectory: true)
         let savedA = await session.saveProject(to: projectA)
         XCTAssertTrue(savedA)
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0].reference.fileURL, projectA)
-        XCTAssertEqual(events[0].pixelWidth, 80)
-        XCTAssertEqual(events[0].pixelHeight, 160)
-        XCTAssertFalse(events[0].previewPNGData.isEmpty)
-        XCTAssertFalse(events[0].isSavedAsNew)
+        XCTAssertEqual(recorder.events.count, 1)
+        XCTAssertEqual(recorder.events[0].reference.fileURL, projectA)
+        XCTAssertEqual(recorder.events[0].pixelWidth, 80)
+        XCTAssertEqual(recorder.events[0].pixelHeight, 160)
+        XCTAssertFalse(recorder.events[0].previewPNGData.isEmpty)
+        XCTAssertFalse(recorder.events[0].isSavedAsNew)
 
         // 6. Repeat save with no new edits -> NO notification.
         let repeatSave = await session.saveProject()
         XCTAssertTrue(repeatSave)
-        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(recorder.events.count, 1)
 
         // 7. Edit then undo back to saved state, then save -> NO notification.
         session.rotateClockwise()
         session.undo()
         let undoneSave = await session.saveProject()
         XCTAssertTrue(undoneSave)
-        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(recorder.events.count, 1)
 
         // 8. Substantive edit + failed save in read-only directory -> NO notification, previous file intact.
         session.beginExposureAdjustment()
@@ -250,41 +270,41 @@ final class PhotoEditingSessionTests: XCTestCase {
         let failedSave = await session.saveProject()
         XCTAssertFalse(failedSave)
         XCTAssertNotNil(session.errorMessage)
-        XCTAssertEqual(events.count, 1)
+        XCTAssertEqual(recorder.events.count, 1)
         XCTAssertEqual(try Data(contentsOf: projectA.appendingPathComponent("manifest.json")), projectABeforeFailure)
 
         // 9. Restore permissions & retry save -> triggers Event #2 with SAME ProjectID.
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: outputs.path)
         let retriedSave = await session.saveProject()
         XCTAssertTrue(retriedSave)
-        XCTAssertEqual(events.count, 2)
-        XCTAssertEqual(events[1].reference.projectID, events[0].reference.projectID)
-        XCTAssertGreaterThan(events[1].savedAt, events[0].savedAt)
+        XCTAssertEqual(recorder.events.count, 2)
+        XCTAssertEqual(recorder.events[1].reference.projectID, recorder.events[0].reference.projectID)
+        XCTAssertGreaterThan(recorder.events[1].savedAt, recorder.events[0].savedAt)
 
         // 10. Save As independent project -> triggers Event #3 with a brand-new ProjectID.
         let projectB = outputs.appendingPathComponent("project-b.comp", isDirectory: true)
         let savedAsB = await session.saveProject(to: projectB, asNew: true)
         XCTAssertTrue(savedAsB)
-        XCTAssertEqual(events.count, 3)
-        XCTAssertNotEqual(events[2].reference.projectID, events[0].reference.projectID)
-        XCTAssertEqual(events[2].reference.fileURL, projectB)
-        XCTAssertTrue(events[2].isSavedAsNew)
+        XCTAssertEqual(recorder.events.count, 3)
+        XCTAssertNotEqual(recorder.events[2].reference.projectID, recorder.events[0].reference.projectID)
+        XCTAssertEqual(recorder.events[2].reference.fileURL, projectB)
+        XCTAssertTrue(recorder.events[2].isSavedAsNew)
 
         // 11. Fresh session opens project-a (browse only -> 0 events, repeat save -> 0 events, edit+save -> 1 event with project-a ID).
         let reopened = PhotoEditingSession(draftStore: PhotoDraftRecoveryStore(directory: root.appendingPathComponent("Drafts2", isDirectory: true)))
-        var reopenedEvents: [PhotoProjectSavedEvent] = []
-        reopened.onSubstantiveProjectSaved = { reopenedEvents.append($0) }
+        let reopenedRecorder = EventRecorder()
+        reopened.onSubstantiveProjectSaved = { reopenedRecorder.record($0) }
         let openedA = await reopened.openProject(at: projectA)
         XCTAssertTrue(openedA)
-        XCTAssertEqual(reopenedEvents.count, 0)
+        XCTAssertEqual(reopenedRecorder.events.count, 0)
         let noChangeSave = await reopened.saveProject()
         XCTAssertTrue(noChangeSave)
-        XCTAssertEqual(reopenedEvents.count, 0)
+        XCTAssertEqual(reopenedRecorder.events.count, 0)
         reopened.rotateClockwise()
         let updatedSave = await reopened.saveProject()
         XCTAssertTrue(updatedSave)
-        XCTAssertEqual(reopenedEvents.count, 1)
-        XCTAssertEqual(reopenedEvents[0].reference.projectID, events[0].reference.projectID)
+        XCTAssertEqual(reopenedRecorder.events.count, 1)
+        XCTAssertEqual(reopenedRecorder.events[0].reference.projectID, recorder.events[0].reference.projectID)
         XCTAssertEqual(SHA256.hash(data: try Data(contentsOf: source)), originalDigest)
     }
 

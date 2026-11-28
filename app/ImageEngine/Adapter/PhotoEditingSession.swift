@@ -10,10 +10,10 @@ import UniformTypeIdentifiers
 @Observable
 final class PhotoEditingSession {
     /// Opaque project package content type exposed to the UI file panels without leaking upstream `.comp` types.
-    nonisolated static var projectContentType: UTType { .compositorProject }
+    static var projectContentType: UTType { .compositorProject }
 
     /// Supported source image types for photo editing entry points.
-    nonisolated static var supportedImageContentTypes: [UTType] { [.jpeg, .png, .heic] }
+    static var supportedImageContentTypes: [UTType] { [.jpeg, .png, .heic] }
 
     let editor = EditorSession()
     private let draftStore: PhotoDraftRecoveryStore
