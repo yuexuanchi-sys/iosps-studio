@@ -46,6 +46,8 @@ struct FilterSheet: View {
             case .cameraRaw:
                 CameraRawControls(session: session)
                     .frame(maxHeight: .infinity, alignment: .top)
+            case .basicAdjustments:
+                EmptyView()
             case .colorBalance:
                 Text("Shadows").font(.headline)
                 control("Cyan / Red", \.colorBalance.shadowCyanRed, range: ColorBalanceSettings.range, unit: "", decimals: 0, logarithmic: false, track: Self.cyanRedTrack)

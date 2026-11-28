@@ -51,9 +51,18 @@ final class PhotoEditingSession {
     var activeCropAspect: PhotoCropAspect? { PhotoCropAspect(rawValue: editor.cropRatioChoice) }
     var cropPixelWidth: Int { Int((editor.cropRect?.width ?? 0).rounded()) }
     var cropPixelHeight: Int { Int((editor.cropRect?.height ?? 0).rounded()) }
+    var isAdjustingBasic: Bool { editor.filterEdit?.kind == .basicAdjustments }
     var isAdjustingExposure: Bool { editor.filterEdit?.kind == .exposure }
     var isAdjustingSaturation: Bool { editor.hueSaturation != nil }
-    var isAdjustingColor: Bool { isAdjustingExposure || isAdjustingSaturation }
+    var isAdjustingColor: Bool { isAdjustingBasic || isAdjustingExposure || isAdjustingSaturation }
+    var basicAdjustments: PhotoBasicAdjustments {
+        guard let edit = editor.filterEdit, edit.kind == .basicAdjustments else { return PhotoBasicAdjustments() }
+        return edit.settings.basicAdjustments
+    }
+    var isComparingOriginal: Bool {
+        guard let edit = editor.filterEdit, edit.kind == .basicAdjustments else { return false }
+        return !edit.preview
+    }
     var canEdit: Bool { !isBusy && editor.document != nil && editor.canEditLayers }
     var canCrop: Bool { !isBusy && editor.document != nil && editor.canStartProjectOperation && !isAdjustingColor }
     var canAdjustColors: Bool { !isBusy && editor.document != nil && editor.canStartProjectOperation && editor.canAdjustColors && editor.cropRect == nil }
@@ -246,6 +255,37 @@ final class PhotoEditingSession {
         scheduleDraftSave()
     }
 
+    func beginBasicAdjustments() {
+        guard canAdjustColors else { return }
+        errorMessage = nil
+        statusMessage = nil
+        editor.beginFilter(.basicAdjustments)
+    }
+
+    func updateBasicAdjustments(_ change: (inout PhotoBasicAdjustments) -> Void) {
+        guard let edit = editor.filterEdit, edit.kind == .basicAdjustments else { return }
+        var settings = edit.settings
+        change(&settings.basicAdjustments)
+        settings.basicAdjustments = settings.basicAdjustments.normalized
+        editor.updateFilter(settings, preview: edit.preview)
+    }
+
+    func setComparingOriginal(_ comparing: Bool) {
+        guard let edit = editor.filterEdit, edit.kind == .basicAdjustments else { return }
+        editor.updateFilter(edit.settings, preview: !comparing)
+    }
+
+    func resetBasicAdjustment(_ keyPath: WritableKeyPath<PhotoBasicAdjustments, Double>) {
+        updateBasicAdjustments { $0[keyPath: keyPath] = 0 }
+    }
+
+    func resetAllBasicAdjustments() {
+        guard let edit = editor.filterEdit, edit.kind == .basicAdjustments else { return }
+        var settings = edit.settings
+        settings.basicAdjustments = PhotoBasicAdjustments()
+        editor.updateFilter(settings, preview: edit.preview)
+    }
+
     func beginExposureAdjustment() {
         guard canAdjustColors else { return }
         errorMessage = nil
@@ -275,6 +315,7 @@ final class PhotoEditingSession {
     func commitActiveAdjustment() async {
         guard !isBusy else { return }
         errorMessage = nil
+        let beforeUndo = editor.history.undoCount
         if editor.hueSaturation != nil {
             await editor.commitHueSaturation()
         } else if editor.filterEdit != nil {
@@ -287,9 +328,11 @@ final class PhotoEditingSession {
             editor.brushError = nil
             return
         }
-        restoredFromDraft = false
-        statusMessage = String(localized: "已应用调色。")
-        scheduleDraftSave()
+        if editor.history.undoCount > beforeUndo {
+            restoredFromDraft = false
+            statusMessage = String(localized: "已应用调色。")
+            scheduleDraftSave()
+        }
     }
 
     func cancelActiveAdjustment() {

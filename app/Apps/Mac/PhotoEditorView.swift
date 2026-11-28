@@ -244,12 +244,22 @@ struct PhotoEditorView: View {
                 Text("基础调色")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
-                Button("曝光…", action: session.beginExposureAdjustment)
-                    .disabled(!session.canAdjustColors)
-                    .accessibilityIdentifier("photo-editor-exposure")
-                Button("饱和度…", action: session.beginSaturationAdjustment)
-                    .disabled(!session.canAdjustColors)
-                    .accessibilityIdentifier("photo-editor-saturation")
+                Button {
+                    session.beginBasicAdjustments()
+                } label: {
+                    Label("基础调色（8 项）…", systemImage: "slider.horizontal.3")
+                        .frame(maxWidth: .infinity)
+                }
+                .disabled(!session.canAdjustColors)
+                .accessibilityIdentifier("photo-editor-basic-adjust")
+                HStack(spacing: 6) {
+                    Button("曝光…", action: session.beginExposureAdjustment)
+                        .disabled(!session.canAdjustColors)
+                        .accessibilityIdentifier("photo-editor-exposure")
+                    Button("饱和度…", action: session.beginSaturationAdjustment)
+                        .disabled(!session.canAdjustColors)
+                        .accessibilityIdentifier("photo-editor-saturation")
+                }
                 Divider()
                 Text("编辑历史")
                     .font(.subheadline.weight(.semibold))
@@ -272,8 +282,30 @@ struct PhotoEditorView: View {
     }
 
     private var adjustmentPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if session.isAdjustingExposure {
+        VStack(alignment: .leading, spacing: 7) {
+            if session.isAdjustingBasic {
+                HStack(spacing: 6) {
+                    Toggle("对比原图", isOn: Binding(
+                        get: { session.isComparingOriginal },
+                        set: { session.setComparingOriginal($0) }
+                    ))
+                    .toggleStyle(.button)
+                    .accessibilityIdentifier("photo-editor-compare-original")
+                    Spacer(minLength: 4)
+                    Button("全部重置", action: session.resetAllBasicAdjustments)
+                        .disabled(session.basicAdjustments.isIdentity)
+                        .accessibilityIdentifier("photo-editor-reset-all-adjustments")
+                }
+                basicAdjustmentSlider(title: "亮度", id: "brightness", keyPath: \.brightness, range: -100...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "对比度", id: "contrast", keyPath: \.contrast, range: -100...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "饱和度", id: "saturation", keyPath: \.saturation, range: -100...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "曝光", id: "exposure", keyPath: \.exposure, range: -2...2, step: 0.1, decimals: 1)
+                basicAdjustmentSlider(title: "色温", id: "temperature", keyPath: \.temperature, range: -100...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "高光", id: "highlights", keyPath: \.highlights, range: -100...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "阴影", id: "shadows", keyPath: \.shadows, range: -100...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "锐化", id: "sharpen", keyPath: \.sharpen, range: 0...100, step: 1, decimals: 0)
+                basicAdjustmentSlider(title: "暗角", id: "vignette", keyPath: \.vignette, range: 0...100, step: 1, decimals: 0)
+            } else if session.isAdjustingExposure {
                 Slider(
                     value: Binding(get: { session.exposureValue }, set: { session.updateExposure($0) }),
                     in: -2...2,
@@ -298,13 +330,63 @@ struct PhotoEditorView: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
+            Divider()
             HStack(spacing: 8) {
                 Button("取消", action: session.cancelActiveAdjustment)
+                    .keyboardShortcut(.cancelAction)
                     .accessibilityIdentifier("photo-editor-cancel-adjustment")
                 Button("应用调色") { Task { await session.commitActiveAdjustment() } }
                     .buttonStyle(.borderedProminent)
                     .accessibilityIdentifier("photo-editor-apply-adjustment")
             }
+        }
+    }
+
+    private func basicAdjustmentSlider(
+        title: String,
+        id: String,
+        keyPath: WritableKeyPath<PhotoBasicAdjustments, Double>,
+        range: ClosedRange<Double>,
+        step: Double,
+        decimals: Int
+    ) -> some View {
+        let value = session.basicAdjustments[keyPath: keyPath]
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Text(verbatim: title)
+                    .font(.caption.weight(.medium))
+                Spacer()
+                Text(verbatim: value.formatted(.number.precision(.fractionLength(decimals))))
+                    .font(.caption)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("photo-editor-value-\(id)")
+                if value != 0 {
+                    Button {
+                        session.resetBasicAdjustment(keyPath)
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.caption2)
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("重置\(title)"))
+                    .accessibilityIdentifier("photo-editor-reset-\(id)")
+                }
+            }
+            Slider(
+                value: Binding(
+                    get: { session.basicAdjustments[keyPath: keyPath] },
+                    set: { next in session.updateBasicAdjustments { $0[keyPath: keyPath] = next } }
+                ),
+                in: range,
+                step: step
+            ) {
+                Text(verbatim: title)
+            }
+            .labelsHidden()
+            .controlSize(.small)
+            .accessibilityLabel(Text(verbatim: title))
+            .accessibilityIdentifier("photo-editor-slider-\(id)")
         }
     }
 

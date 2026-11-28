@@ -30,6 +30,7 @@ nonisolated enum FilterKind: String, CaseIterable, Sendable {
     case grain = "Grain"
     case blackWhite = "Black & White"
     case colorBalance = "Color Balance"
+    case basicAdjustments = "Basic Adjustments"
     var isAutomatic: Bool { self == .contentAwareFill || self == .removeBackground }
     /// The Filter menu's own filters, which Last Filter can run again; not Content-Aware Fill or the Image menu's.
     var repeatsAsLastFilter: Bool { self != .contentAwareFill && !isImageAdjustment }
@@ -41,7 +42,7 @@ nonisolated enum FilterKind: String, CaseIterable, Sendable {
     }
     /// Filters whose output channels each depend on all three input channels (Camera Raw's color, and the ones that work
     /// from brightness), which a 16-bit layer runs the slower, channel-by-channel way (`DeepLayer.run`).
-    var mixesChannels: Bool { self == .cameraRaw || self == .tonalContrast || self == .scanlines || self == .reduceNoise }
+    var mixesChannels: Bool { self == .cameraRaw || self == .tonalContrast || self == .scanlines || self == .reduceNoise || self == .basicAdjustments }
     /// For the color adjustments whose channels mix, their color lookup, to apply to a 16-bit layer
     /// (`LayerAdjustment.sixteenBitLookup`); nil for the rest.
     func sixteenBitLookup(_ settings: FilterSettings) -> (cube: Data, dimension: Int)? {
@@ -57,7 +58,7 @@ nonisolated enum FilterKind: String, CaseIterable, Sendable {
     /// Color adjustments: in the Image menu (and editable as adjustment layers), not under Filter.
     var isImageAdjustment: Bool {
         self == .curves || self == .exposure || self == .gradientMap || self == .grain
-            || self == .blackWhite || self == .colorBalance
+            || self == .blackWhite || self == .colorBalance || self == .basicAdjustments
     }
 }
 
@@ -148,6 +149,7 @@ nonisolated struct FilterSettings: Equatable, Sendable {
     var dither = DitherSettings()
     var scanlines = ScanlinesSettings()
     var cameraRaw = CameraRawSettings()
+    var basicAdjustments = PhotoBasicAdjustments()
     /// Remove Background: Basic is the quick subject mask; Advanced refines it (see the three settings below).
     var backgroundQuality: BackgroundQuality = .basic
     /// Remove Background: how far the mask is pulled onto the image's own edges (0 off, in layer pixels).
@@ -202,6 +204,7 @@ nonisolated struct FilterSettings: Equatable, Sendable {
         result.rimLight = rimLight.normalized
         result.volumetric = volumetric.normalized
         result.cameraRaw = cameraRaw.normalized
+        result.basicAdjustments = basicAdjustments.normalized
         return result
     }
 }
@@ -356,6 +359,7 @@ nonisolated enum PixelFilter {
         case .cameraRaw: image = try settings.cameraRaw.apply(job.image, clipping: job.cameraRawClipping, scale: job.scale, seed: job.seed,
                                                                 visualizePointColor: job.visualizesPointColor, sharpenMask: job.showsSharpenMask,
                                                                 brightness: job.cameraRawBrightness, usesGPU: job.cameraRawUsesGPU)
+        case .basicAdjustments: image = try settings.basicAdjustments.apply(to: job.image, scale: job.scale)
         // Grain sits in layer pixels; the job's seed gives each application its own pattern.
         case .grain: image = try settings.grain.apply(job.image, unitsPerPixel: 1 / job.scale, seed: job.seed)
         case .dither: image = try settings.dither.apply(job.image)
@@ -854,6 +858,9 @@ extension EditorSession {
             if kind == .gradientMap {
                 settings.gradientMap = GradientMapSettings(shadows: AdjustmentColor(foregroundColor), highlights: AdjustmentColor(backgroundColor))
             }
+            if kind == .basicAdjustments, !repeating {
+                settings.basicAdjustments = PhotoBasicAdjustments()
+            }
             // Content-Aware Fill extends the layer over any of the selection on the canvas past its edge; Vignette on
             // an empty layer covers the whole canvas, which it frames and fills.
             let canvas = CGRect(origin: .zero, size: document.size)
@@ -1068,6 +1075,7 @@ extension EditorSession {
                 (edit.settings.tonalShadows == 0 && edit.settings.tonalMidtones == 0 && edit.settings.tonalHighlights == 0)))
             || (edit.kind == .exposure && edit.settings.exposure == ExposureSettings())
             || (edit.kind == .grain && edit.settings.grain.amount == 0)
+            || (edit.kind == .basicAdjustments && edit.settings.basicAdjustments.isIdentity)
             || (edit.kind == .cameraRaw && rendered.cameraRaw.isIdentity) { cancelFilter(); return }
         edit.committing = true
         edit.previewTask?.cancel()
